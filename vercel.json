@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npx prisma generate && next build",
+  "devCommand": "npx prisma generate && next dev",
+  "installCommand": "npm install --legacy-peer-deps",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  }
+} 
