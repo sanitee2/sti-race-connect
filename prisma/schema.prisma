@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("MONGODB_URI")
+}
+
+model users {
+  id                String               @id @default(auto()) @map("_id") @db.ObjectId
+  name              String
+  email             String               @unique
+  password          String
+  phone_number      String?
+  role              Role                 @default(Guest)
+  created_at        DateTime             @default(now())
+  updated_at        DateTime             @updatedAt
+  runner_profile    runner_profile?
+  marshal_profile   marshal_profile?
+  created_events    events[]             @relation("CreatedBy")
+  created_categories event_categories[]  @relation("CategoryCreatedBy")
+  event_staff       event_staff[]        @relation("StaffMember")
+  participants      participants[]       @relation("UserParticipant")
+}
+
+model runner_profile {
+  id                         String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id                    String   @unique @db.ObjectId
+  date_of_birth              DateTime
+  gender                     Gender
+  address                    String
+  tshirt_size                TshirtSize
+  emergency_contact_name     String
+  emergency_contact_phone    String
+  emergency_contact_relationship String
+  user                       users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model marshal_profile {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id             String   @unique @db.ObjectId
+  date_of_birth       DateTime
+  gender              Gender
+  address             String
+  organization_name   String
+  role_position       String
+  social_media_links  String?
+  responsibilities    String
+  user                users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model events {
+  id                 String                  @id @default(auto()) @map("_id") @db.ObjectId
+  event_name         String
+  event_date         DateTime
+  location           String
+  target_audience    String
+  description        String
+  created_by         String                  @db.ObjectId
+  created_at         DateTime                @default(now())
+  updated_at         DateTime                @updatedAt
+  creator            users                   @relation("CreatedBy", fields: [created_by], references: [id])
+  event_categories   event_to_category[]
+  event_staff        event_staff[]           @relation("EventStaff")
+}
+
+model event_categories {
+  id               String                @id @default(auto()) @map("_id") @db.ObjectId
+  category_name    String
+  description      String
+  target_audience  String
+  created_by       String                @db.ObjectId
+  created_at       DateTime              @default(now())
+  updated_at       DateTime              @updatedAt
+  creator          users                 @relation("CategoryCreatedBy", fields: [created_by], references: [id])
+  events           event_to_category[]
+  participants     participants[]        @relation("CategoryParticipant")
+  results          results[]             @relation("CategoryResults")
+}
+
+model event_staff {
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  event_id         String           @db.ObjectId
+  user_id          String           @db.ObjectId
+  role_in_event    StaffRole
+  responsibilities String
+  assigned_at      DateTime         @default(now())
+  event            events           @relation("EventStaff", fields: [event_id], references: [id], onDelete: Cascade)
+  user             users            @relation("StaffMember", fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([event_id, user_id])
+}
+
+model participants {
+  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
+  user_id            String           @db.ObjectId
+  rfid_number        String?
+  category_id        String           @db.ObjectId
+  payment_status     PaymentStatus    @default(Pending)
+  registration_status RegistrationStatus @default(Pending)
+  registered_at      DateTime         @default(now())
+  user               users            @relation("UserParticipant", fields: [user_id], references: [id], onDelete: Cascade)
+  category           event_categories @relation("CategoryParticipant", fields: [category_id], references: [id])
+  results            results[]        @relation("ParticipantResults")
+
+  @@unique([user_id, category_id])
+}
+
+model results {
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  participant_id   String           @db.ObjectId
+  category_id      String           @db.ObjectId
+  completion_time  String           // Stored as string in format "HH:MM:SS.ms"
+  ranking          Int?
+  notes            String?
+  recorded_at      DateTime         @default(now())
+  participant      participants     @relation("ParticipantResults", fields: [participant_id], references: [id], onDelete: Cascade)
+  category         event_categories @relation("CategoryResults", fields: [category_id], references: [id])
+
+  @@unique([participant_id, category_id])
+}
+
+// Junction model for many-to-many relationship between events and categories
+model event_to_category {
+  id           String           @id @default(auto()) @map("_id") @db.ObjectId
+  event_id     String           @db.ObjectId
+  category_id  String           @db.ObjectId
+  event        events           @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  category     event_categories @relation(fields: [category_id], references: [id], onDelete: Cascade)
+
+  @@unique([event_id, category_id])
+}
+
+enum Role {
+  Guest
+  Runner
+  Marshal
+  Admin
+}
+
+enum Gender {
+  Male
+  Female
+  Other
+}
+
+enum TshirtSize {
+  XS
+  S
+  M
+  L
+  XL
+  XXL
+}
+
+enum StaffRole {
+  EventMarshal
+  SubMarshal
+  Coordinator
+}
+
+enum PaymentStatus {
+  Pending
+  Paid
+  Verified
+}
+
+enum RegistrationStatus {
+  Pending
+  Approved
+  Rejected
+}
