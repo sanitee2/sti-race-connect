@@ -198,35 +198,40 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                title: "City Marathon 2024",
+                id: "1",
+                event_name: "City Marathon 2024",
+                description: "Join us for the premier running event in Metro Manila.",
                 date: "June 15, 2024",
                 location: "Metro Manila",
-                image: "/assets/login_page.jpg",
+                image_url: "/assets/login_page.jpg",
                 categories: ["5K", "10K", "21K"],
-                featured: true,
-                id: "1",
-                participants: 1240,
-                organizer: "Metro Running Club"
+                status: "upcoming" as const,
+                organizer: "Metro Running Club",
+                participants: 1240
               },
               {
-                title: "Coastal Trail Run",
+                id: "2",
+                event_name: "Coastal Trail Run",
+                description: "Experience the beauty of nature with this challenging trail run.",
                 date: "July 22, 2024",
                 location: "Batangas",
-                image: "/assets/login_page.jpg",
+                image_url: "/assets/login_page.jpg",
                 categories: ["Trail 12K", "Trail 25K"],
-                id: "2",
-                participants: 850,
-                organizer: "Trail Blazers PH"
+                status: "active" as const,
+                organizer: "Trail Blazers PH",
+                participants: 850
               },
               {
-                title: "STI College Fun Run",
+                id: "3",
+                event_name: "STI College Fun Run",
+                description: "A fun community event for all STI students and alumni.",
                 date: "August 8, 2024",
                 location: "Multiple STI Campuses",
-                image: "/assets/login_page.jpg",
+                image_url: "/assets/login_page.jpg",
                 categories: ["3K", "5K"],
-                id: "3",
-                participants: 620,
-                organizer: "STI Events Committee"
+                status: "upcoming" as const,
+                organizer: "STI Events Committee",
+                participants: 620
               }
             ].map((event) => (
               <EventCard 
