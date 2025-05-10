@@ -15,84 +15,95 @@ import {
   ArrowUpDown,
   ListFilter
 } from 'lucide-react';
+import { Event, EventFilters } from '@/types/models';
 
 // Mock events data - would come from API/database in real app
-const mockEvents = [
+const mockEvents: Event[] = [
   {
-    title: "City Marathon 2024",
+    id: "1",
+    event_name: "City Marathon 2024",
+    description: "Join us for the premier running event in Metro Manila.",
     date: "June 15, 2024",
     location: "Metro Manila",
-    image: "/assets/login_page.jpg",
+    image_url: "/assets/login_page.jpg",
     categories: ["5K", "10K", "21K"],
-    featured: true,
-    id: "1",
-    participants: 1240,
+    type: "Marathon",
     organizer: "Metro Running Club",
-    type: "Marathon"
+    price: "₱1,200",
+    status: "upcoming"
   },
   {
-    title: "Coastal Trail Run",
+    id: "2",
+    event_name: "Coastal Trail Run",
+    description: "Experience the beauty of nature with this challenging trail run.",
     date: "July 22, 2024",
     location: "Batangas",
-    image: "/assets/login_page.jpg",
+    image_url: "/assets/login_page.jpg",
     categories: ["Trail 12K", "Trail 25K"],
-    id: "2",
-    participants: 850,
+    type: "Trail Run",
     organizer: "Trail Blazers PH",
-    type: "Trail Run"
+    price: "₱1,500",
+    status: "upcoming"
   },
   {
-    title: "STI College Fun Run",
+    id: "3",
+    event_name: "STI College Fun Run",
+    description: "A fun community event for all STI students and alumni.",
     date: "August 8, 2024",
     location: "Multiple STI Campuses",
-    image: "/assets/login_page.jpg",
+    image_url: "/assets/login_page.jpg",
     categories: ["3K", "5K"],
-    id: "3",
-    participants: 620,
+    type: "Fun Run",
     organizer: "STI Events Committee",
-    type: "Fun Run"
+    price: "₱700",
+    status: "upcoming"
   },
   {
-    title: "Sunrise Half Marathon",
+    id: "4",
+    event_name: "Sunrise Half Marathon",
+    description: "Run as the sun rises over beautiful Subic Bay.",
     date: "September 10, 2024",
     location: "Subic Bay",
-    image: "/assets/login_page.jpg",
+    image_url: "/assets/login_page.jpg",
     categories: ["10K", "21K"],
-    id: "4",
-    participants: 980,
+    type: "Marathon",
     organizer: "RunPH Events",
-    type: "Marathon"
+    price: "₱1,800",
+    status: "upcoming"
   },
   {
-    title: "Mountain Trail Challenge",
+    id: "5",
+    event_name: "Mountain Trail Challenge",
+    description: "Test your endurance on the challenging Rizal mountain trails.",
     date: "October 5, 2024",
     location: "Rizal Mountains",
-    image: "/assets/login_page.jpg",
+    image_url: "/assets/login_page.jpg",
     categories: ["Trail 15K", "Trail 30K"],
-    id: "5",
-    participants: 420,
+    type: "Trail Run",
     organizer: "Outdoor Adventures Inc.",
-    type: "Trail Run"
+    price: "₱2,000",
+    status: "upcoming"
   },
   {
-    title: "Corporate Charity Run",
+    id: "6",
+    event_name: "Corporate Charity Run",
+    description: "Run for a cause and help raise funds for local charities.",
     date: "November 20, 2024",
     location: "BGC, Taguig",
-    image: "/assets/login_page.jpg",
+    image_url: "/assets/login_page.jpg",
     categories: ["3K", "5K", "10K"],
-    featured: true,
-    id: "6",
-    participants: 1500,
+    type: "Fun Run",
     organizer: "Corporate Running Club",
-    type: "Fun Run"
+    price: "₱1,000",
+    status: "upcoming"
   }
 ];
 
 // Get unique list of event types, locations, and months for filters
-const eventTypes = [...new Set(mockEvents.map(event => event.type))];
-const eventLocations = [...new Set(mockEvents.map(event => event.location))];
+const eventTypes = [...new Set(mockEvents.map(event => event.type || ''))];
+const eventLocations = [...new Set(mockEvents.map(event => event.location || ''))];
 const eventMonths = [...new Set(mockEvents.map(event => {
-  const month = event.date.split(' ')[0];
+  const month = event.date?.split(' ')[0] || '';
   return month;
 }))];
 
@@ -111,10 +122,10 @@ export default function EventsPage() {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         return (
-          event.title.toLowerCase().includes(query) ||
-          event.location.toLowerCase().includes(query) ||
-          event.organizer.toLowerCase().includes(query) ||
-          event.categories.some(cat => cat.toLowerCase().includes(query))
+          event.event_name.toLowerCase().includes(query) ||
+          (event.location?.toLowerCase().includes(query) || false) ||
+          (event.organizer?.toLowerCase().includes(query) || false) ||
+          (event.categories?.some(cat => cat.toLowerCase().includes(query)) || false)
         );
       }
       return true;
@@ -122,33 +133,29 @@ export default function EventsPage() {
     .filter(event => {
       // Type filter
       if (selectedTypes.length === 0) return true;
-      return selectedTypes.includes(event.type);
+      return selectedTypes.includes(event.type || '');
     })
     .filter(event => {
       // Location filter
       if (selectedLocations.length === 0) return true;
-      return selectedLocations.includes(event.location);
+      return selectedLocations.includes(event.location || '');
     })
     .filter(event => {
       // Month filter
       if (selectedMonths.length === 0) return true;
-      const month = event.date.split(' ')[0];
+      const month = event.date?.split(' ')[0] || '';
       return selectedMonths.includes(month);
     })
     .sort((a, b) => {
       // Sort options
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
+      const dateA = new Date(a.date || '');
+      const dateB = new Date(b.date || '');
       
       switch (sortOption) {
         case 'date-asc':
           return dateA.getTime() - dateB.getTime();
         case 'date-desc':
           return dateB.getTime() - dateA.getTime();
-        case 'participants-desc':
-          return b.participants - a.participants;
-        case 'participants-asc':
-          return a.participants - b.participants;
         default:
           return 0;
       }
