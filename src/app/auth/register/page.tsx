@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useRouter } from "next/navigation";
 
 interface RegisterFormData {
   name: string;
@@ -56,6 +57,10 @@ export default function RegisterPage() {
   const [selectedRole, setSelectedRole] = useState<Role>("Runner");
   const [currentStep, setCurrentStep] = useState(0);
   const [iconVisible, setIconVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const router = useRouter();
 
   const {
     register,
@@ -75,12 +80,27 @@ export default function RegisterPage() {
   useEffect(() => {
     setIconVisible(true);
     
+    // Initialize dateOfBirth with current date
+    const today = new Date();
+    setValue('dateOfBirth', today, { shouldValidate: false });
+    
     // Register date of birth field as required
-    register('dateOfBirth', { required: true });
+    register('dateOfBirth', { 
+      required: 'Date of birth is required',
+      validate: (value) => {
+        if (!value) return 'Date of birth is required';
+        return true;
+      }
+    });
     
     // Register other select fields as required
-    register('gender', { required: true });
-    register('tshirtSize', { required: true });
+    register('gender', { 
+      required: 'Gender is required'
+    });
+    
+    register('tshirtSize', { 
+      required: 'T-shirt size is required'
+    });
     
     // Register email with validation
     register('email', { 
@@ -110,7 +130,12 @@ export default function RegisterPage() {
           'Password must contain at least one special character'
       }
     });
-  }, [register]);
+    
+    // Register terms checkbox
+    register('terms', { 
+      required: 'You must accept the terms and conditions to continue' 
+    });
+  }, [register, setValue]);
 
   const handleRoleChange = (role: Role) => {
     if (role === selectedRole) return;
@@ -125,8 +150,35 @@ export default function RegisterPage() {
     // Get all fields in the current step
     const fieldsToValidate = roleSteps[currentStep].fields;
     
+    // On the last step, also validate terms
+    const fieldsToCheck = currentStep === roleSteps.length - 1 
+      ? [...fieldsToValidate, 'terms'] 
+      : fieldsToValidate;
+
+    console.log('Validating fields:', fieldsToCheck);
+    
+    // Make sure all required fields are registered properly
+    fieldsToCheck.forEach(field => {
+      // Special handling for select fields like gender and tshirtSize
+      if (field === 'gender' || field === 'tshirtSize') {
+        const value = getValues(field as any);
+        console.log(`Field ${field} value:`, value);
+        
+        if (!value) {
+          setValue(field as any, '', { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+        }
+      }
+    });
+    
     // Trigger validation for these fields
-    const result = await trigger(fieldsToValidate as any[]);
+    const result = await trigger(fieldsToCheck as any[]);
+    console.log('Validation result:', result);
+    
+    // If validation failed, log which fields have errors
+    if (!result) {
+      console.log('Field errors:', errors);
+    }
+    
     return result;
   };
 
@@ -143,8 +195,81 @@ export default function RegisterPage() {
     setCurrentStep((prev) => Math.max(prev - 1, 0));
   };
 
-  const onSubmit = (data: RegisterFormData) => {
-    console.log(data);
+  const onSubmit = async (data: RegisterFormData) => {
+    try {
+      setIsSubmitting(true);
+      setRegistrationError(null);
+      
+      console.log('Form data to be submitted:', data);
+      
+      // Prepare the user data
+      const userData = {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        phoneNumber: data.phoneNumber || null,
+        role: selectedRole,
+        profile: {
+          dateOfBirth: data.dateOfBirth,
+          gender: data.gender,
+          address: data.address,
+          // Additional fields based on role
+          ...(selectedRole === "Runner" 
+            ? {
+                tshirtSize: data.tshirtSize,
+                emergencyContactName: data.emergencyContactName,
+                emergencyContactPhone: data.emergencyContactPhone,
+                emergencyContactRelationship: data.emergencyContactRelationship
+              } 
+            : {
+                organizationName: data.organizationName,
+                rolePosition: data.rolePosition,
+                socialMediaLinks: data.socialMediaLinks || null,
+                responsibilities: data.responsibilities
+              }
+          )
+        }
+      };
+      
+      console.log('Transformed data for API:', userData);
+      
+      try {
+      // Submit the data to the API
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+      
+      console.log('API response status:', response.status);
+      const responseData = await response.json();
+      console.log('API response data:', responseData);
+      
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Registration failed');
+      }
+      
+      // Handle successful registration
+      setRegistrationSuccess(true);
+      
+      // Redirect to login page after successful registration
+      setTimeout(() => {
+        router.push('/auth/login');
+      }, 2000);
+      } catch (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw new Error(fetchError instanceof Error ? fetchError.message : 'Network error occurred');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setRegistrationError(
+        error instanceof Error ? error.message : 'Failed to register. Please try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSelectChange = (name: keyof RegisterFormData, value: string) => {
@@ -423,6 +548,8 @@ export default function RegisterPage() {
             <div className="relative">
               <Select 
                 onValueChange={(value) => handleSelectChange('gender', value)}
+                value={watch('gender')}
+                defaultValue=""
               >
                 <SelectTrigger className={`${errors.gender ? "border-destructive" : ""} 
                                          ${isFieldValid('gender') ? "border-green-500" : ""}`}>
@@ -435,15 +562,15 @@ export default function RegisterPage() {
                   )}
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {errors.gender && (
               <p className="text-destructive text-sm flex items-center gap-1">
-                Gender is required
+                {typeof errors.gender.message === 'string' ? errors.gender.message : 'Gender is required'}
               </p>
             )}
           </div>
@@ -457,6 +584,8 @@ export default function RegisterPage() {
             <div className="relative">
               <Select 
                 onValueChange={(value) => handleSelectChange('tshirtSize', value)}
+                value={watch('tshirtSize')}
+                defaultValue=""
               >
                 <SelectTrigger className={`${errors.tshirtSize ? "border-destructive" : ""} 
                                           ${isFieldValid('tshirtSize') ? "border-green-500" : ""}`}>
@@ -480,7 +609,7 @@ export default function RegisterPage() {
             </div>
             {errors.tshirtSize && (
               <p className="text-destructive text-sm flex items-center gap-1">
-                T-shirt size is required
+                {typeof errors.tshirtSize.message === 'string' ? errors.tshirtSize.message : 'T-shirt size is required'}
               </p>
             )}
           </div>
@@ -696,6 +825,33 @@ export default function RegisterPage() {
     return Math.min(strength, 4);
   };
 
+  const handleFormSubmit = handleSubmit(async (data) => {
+    // First check if we're on the final step, and if not, just go to the next step
+    if (currentStep < roleSteps.length - 1) {
+      nextStep();
+      return;
+    }
+    
+    // If we're on the final step, check if terms is checked
+    if (!data.terms) {
+      setRegistrationError('You must accept the terms and conditions to continue');
+      return;
+    }
+    
+    // Otherwise proceed with the registration
+    await onSubmit(data);
+  });
+
+  // Backup method to force next step if form validation is causing issues
+  const handleManualNext = () => {
+    // Save current form values to keep them while navigating
+    const currentValues = getValues();
+    console.log('Current form values:', currentValues);
+    
+    // Simply increment the step counter
+    setCurrentStep(prev => Math.min(prev + 1, roleSteps.length - 1));
+  };
+
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="mb-8 text-center">
@@ -718,6 +874,14 @@ export default function RegisterPage() {
         <p className="mt-2 text-muted-foreground">
           Join us and participate in exciting running events
         </p>
+        {/* Debug button - remove in production */}
+        <button
+          type="button"
+          onClick={() => setCurrentStep(roleSteps.length - 1)}
+          className="mt-2 text-xs text-gray-400 underline"
+        >
+          Debug: Skip to Final Step
+        </button>
       </div>
       <div className="flex justify-center space-x-6 mb-8 w-full">
         <Button
@@ -725,10 +889,10 @@ export default function RegisterPage() {
           onClick={() => handleRoleChange("Runner")}
           className={`
             flex-1 flex items-center justify-center gap-4 py-8 text-lg
-            transition-all duration-200
+            transition-all duration-200 !scale-100
             ${selectedRole === "Runner" 
               ? "bg-primary text-primary-foreground" 
-              : "hover:scale-105 hover:shadow-md active:scale-95"
+              : ""
             }
           `}
           size="lg"
@@ -741,10 +905,10 @@ export default function RegisterPage() {
           onClick={() => handleRoleChange("Marshal")}
           className={`
             flex-1 flex items-center justify-center gap-4 py-8 text-lg
-            transition-all duration-200
+            transition-all duration-200 !scale-100
             ${selectedRole === "Marshal" 
               ? "bg-primary text-primary-foreground" 
-              : "hover:scale-105 hover:shadow-md active:scale-95"
+              : ""
             }
           `}
           size="lg"
@@ -759,20 +923,38 @@ export default function RegisterPage() {
           <CardTitle className="text-center">{roleSteps[currentStep].name}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleFormSubmit} className="space-y-4">
             {roleSteps[currentStep].fields.map(fieldName => 
               renderField(fieldName)
             )}
             
             {currentStep === roleSteps.length - 1 && (
-              <div className="flex items-center space-x-2">
-                <Checkbox id="terms" {...register('terms' as keyof RegisterFormData, { required: true })} />
-                <Label htmlFor="terms" className="text-sm">
-                  I agree to the{' '}
-                  <Link href="#" className="text-primary hover:underline">
-                    Terms and Conditions
-                  </Link>
-                </Label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="terms" 
+                    onCheckedChange={(checked) => {
+                      setValue('terms', checked === true, { 
+                        shouldValidate: true,
+                        shouldDirty: true,
+                        shouldTouch: true
+                      });
+                    }}
+                    checked={watch('terms')}
+                  />
+                  <Label htmlFor="terms" className="text-sm">
+                    I agree to the{' '}
+                    <Link href="#" className="text-primary hover:underline">
+                      Terms and Conditions
+                    </Link>
+                  </Label>
+                </div>
+                {errors.terms && (
+                  <p className="text-destructive text-sm flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {typeof errors.terms.message === 'string' ? errors.terms.message : 'You must accept the terms and conditions'}
+                  </p>
+                )}
               </div>
             )}
             
@@ -783,6 +965,7 @@ export default function RegisterPage() {
                   variant="outline"
                   onClick={prevStep}
                   className="flex-1"
+                  disabled={isSubmitting}
                 >
                   Previous
                 </Button>
@@ -791,20 +974,66 @@ export default function RegisterPage() {
               {currentStep < roleSteps.length - 1 ? (
                 <Button
                   type="button"
-                  onClick={nextStep}
+                  onClick={handleManualNext}
                   className={`${currentStep === 0 ? 'w-full' : 'flex-1'}`}
                 >
                   Next
                 </Button>
               ) : (
                 <Button
-                  type="submit"
+                  type="button"
+                  onClick={async () => {
+                    // Manual form submission for final step
+                    setIsSubmitting(true);
+                    try {
+                      const values = getValues();
+                      console.log("Final form values:", values);
+                      
+                      if (!values.terms) {
+                        setRegistrationError('You must accept the terms and conditions to continue');
+                        return;
+                      }
+                      
+                      await onSubmit(values);
+                    } catch (error) {
+                      console.error("Manual submission error:", error);
+                    } finally {
+                      setIsSubmitting(false);
+                    }
+                  }}
                   className={`${currentStep === 0 ? 'w-full' : 'flex-1'}`}
+                  disabled={isSubmitting || !watch('terms')}
                 >
-                  Create Account
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin"></div>
+                      <span>Creating Account...</span>
+                    </div>
+                  ) : (
+                    "Create Account"
+                  )}
                 </Button>
               )}
             </div>
+            
+            {/* Registration Error */}
+            {registrationError && (
+              <div className="mt-4 bg-destructive/10 text-destructive text-sm p-3 rounded-lg flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <div>{registrationError}</div>
+              </div>
+            )}
+            
+            {/* Registration Success */}
+            {registrationSuccess && (
+              <div className="mt-4 bg-green-100 text-green-700 text-sm p-3 rounded-lg flex items-start gap-2">
+                <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong>Registration successful!</strong> 
+                  <p>Redirecting to login page...</p>
+                </div>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>

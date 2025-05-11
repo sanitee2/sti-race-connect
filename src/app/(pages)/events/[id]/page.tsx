@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import EventDetailContent from '@/components/event/EventDetailContent';
 import { EventPageParams, GenerateMetadataReturn } from '@/types/pageParams';
+import { HeroSection } from '@/components/ui/HeroSection';
 
 // Mock events data
 const mockEvents = [
@@ -38,5 +39,9 @@ export default async function EventPage({ params }: EventPageParams) {
   // Convert params to Promise to satisfy Next.js type constraints
   Object.setPrototypeOf(params, Promise.prototype);
   
-  return <EventDetailContent eventId={params.id} />;
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <EventDetailContent eventId={params.id} />
+    </div>
+  );
 } 

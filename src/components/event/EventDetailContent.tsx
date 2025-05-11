@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { EventCard } from '@/components/EventCard';
 import { 
   Calendar, 
   Clock, 
@@ -325,39 +326,19 @@ export default function EventDetailContent({ eventId }: { eventId: string }) {
                 </h2>
                 <div className="grid md:grid-cols-2 gap-6">
                   {mockEvents.filter(e => e.id !== eventId).map((event) => (
-                    <div key={event.id} className="group relative bg-card rounded-xl overflow-hidden transition-all hover:shadow-lg border border-border hover-scale hover:border-primary/30 block">
-                      <div className="h-[200px] relative overflow-hidden">
-                        <Image 
-                          src="/assets/login_page.jpg" 
-                          alt={event.event_name}
-                          fill
-                          className="object-cover transition-transform duration-700 group-hover:scale-105"
-                          unoptimized
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent z-10"></div>
-                        <div className="absolute bottom-0 left-0 right-0 z-20 px-5 py-4 flex justify-between items-center backdrop-blur-sm bg-black/40">
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center text-white text-sm">
-                              <Calendar size={14} className="mr-1.5 text-secondary" /> 
-                              <span className="font-medium">{formatDate(event.event_date)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <Link href={`/events/${event.id}`}>
-                          <h3 className="text-lg font-bold text-foreground mb-2 group-hover:text-primary transition-colors line-clamp-1 flex items-center gap-2">
-                            {event.event_name}
-                            <ChevronRight className="h-4 w-4 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </h3>
-                        </Link>
-                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{event.description}</p>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <MapPin size={14} className="mr-1.5 text-primary" />
-                          <span>{event.location}</span>
-                        </div>
-                      </div>
-                    </div>
+                    <EventCard 
+                      key={event.id}
+                      id={event.id}
+                      event_name={event.event_name}
+                      date={formatDate(event.event_date)}
+                      location={event.location}
+                      image_url="/assets/login_page.jpg"
+                      categories={event.categories.slice(0, 2).map(c => c.category_name)}
+                      status="upcoming"
+                      organizer={event.organizers[0].name}
+                      description={event.description}
+                      participants={Math.floor(Math.random() * 500) + 100}
+                    />
                   ))}
                 </div>
               </div>

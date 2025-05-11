@@ -61,6 +61,7 @@ module.exports = {
         sans: ["var(--font-sans)"],
         body: ["var(--font-body)"],
         mono: ["var(--font-mono)"],
+        heading: ["var(--font-heading)"],
       },
       keyframes: {
         "accordion-down": {

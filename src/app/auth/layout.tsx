@@ -1,19 +1,24 @@
+"use client";
+
 import { ReactNode } from 'react';
 import Image from 'next/image';
 import { Logo } from '@/components/Logo';
+import { useTheme } from '@/providers/theme-provider';
 
 interface AuthLayoutProps {
   children: ReactNode;
 }
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
+  const { theme } = useTheme();
+  
   return (
     <div className="min-h-screen flex">
       {/* Left side - Auth form */}
-      <div className="w-full lg:w-1/2 flex flex-col bg-white p-8">
+      <div className="w-full lg:w-1/2 flex flex-col bg-background p-8">
         {/* Logo */}
         <div className="mb-8">
-          <Logo textColor="text-primary" />
+          <Logo />
         </div>
         
         {/* Content */}

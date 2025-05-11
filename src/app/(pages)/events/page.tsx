@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { EventCard } from '@/components/EventCard';
+import { HeroSection } from '@/components/ui/HeroSection';
 import { 
   Search, 
   Filter, 
@@ -196,29 +197,27 @@ export default function EventsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Main Content */}
-      <div className="pt-28 pb-16">
+      <HeroSection 
+        title="Upcoming Running Events"
+        subtitle="Find and register for the best running events happening near you."
+        size="compact"
+      />
+      
+      <div className="py-12">
         <div className="container mx-auto px-6">
-          {/* Page Title */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Upcoming Running Events</h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Find and register for the best running events happening near you. From fun runs to marathons, we've got something for every runner.
-            </p>
-          </div>
-          
           {/* Search and Filters Section */}
           <div className="mb-10">
             <div className="flex flex-col lg:flex-row gap-4 justify-between mb-6">
               {/* Search Box */}
               <div className="relative flex-1 max-w-full lg:max-w-md">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <Search className="w-5 h-5 text-gray-400" />
+                  <Search className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <input 
                   type="text" 
-                  className="bg-white border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
+                  className="bg-card dark:bg-card/80 border border-input text-foreground text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
                   placeholder="Search by event name, location, or category..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -228,11 +227,11 @@ export default function EventsPage() {
               {/* Sort Dropdown */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <ArrowUpDown className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-600 hidden md:inline">Sort by:</span>
+                  <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground hidden md:inline">Sort by:</span>
                 </div>
                 <select 
-                  className="bg-white border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
+                  className="bg-card dark:bg-card/80 border border-input text-foreground text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5"
                   value={sortOption}
                   onChange={(e) => setSortOption(e.target.value)}
                 >
@@ -244,7 +243,7 @@ export default function EventsPage() {
                 
                 {/* Mobile Filter Toggle Button */}
                 <button 
-                  className="lg:hidden flex items-center gap-2 bg-white border border-gray-200 text-gray-600 rounded-lg px-4 py-2.5 text-sm"
+                  className="lg:hidden flex items-center gap-2 bg-card dark:bg-card/80 border border-input text-foreground rounded-lg px-4 py-2.5 text-sm"
                   onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
                 >
                   <Filter className="w-4 h-4" />
@@ -259,7 +258,7 @@ export default function EventsPage() {
               <div className="filter-group">
                 <div className="flex items-center gap-2 mb-2">
                   <ListFilter className="w-4 h-4 text-primary" />
-                  <h3 className="text-sm font-medium text-gray-700">Event Type</h3>
+                  <h3 className="text-sm font-medium text-foreground">Event Type</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {eventTypes.map((type) => (
@@ -267,8 +266,8 @@ export default function EventsPage() {
                       key={type}
                       className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
                         selectedTypes.includes(type)
-                          ? 'bg-primary text-white border-primary'
-                          : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-card dark:bg-card/80 text-foreground border-input hover:border-primary/50'
                       }`}
                       onClick={() => toggleTypeFilter(type)}
                     >
@@ -282,7 +281,7 @@ export default function EventsPage() {
               <div className="filter-group">
                 <div className="flex items-center gap-2 mb-2">
                   <MapPin className="w-4 h-4 text-primary" />
-                  <h3 className="text-sm font-medium text-gray-700">Location</h3>
+                  <h3 className="text-sm font-medium text-foreground">Location</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {eventLocations.map((location) => (
@@ -290,8 +289,8 @@ export default function EventsPage() {
                       key={location}
                       className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
                         selectedLocations.includes(location)
-                          ? 'bg-primary text-white border-primary'
-                          : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-card dark:bg-card/80 text-foreground border-input hover:border-primary/50'
                       }`}
                       onClick={() => toggleLocationFilter(location)}
                     >
@@ -305,7 +304,7 @@ export default function EventsPage() {
               <div className="filter-group">
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar className="w-4 h-4 text-primary" />
-                  <h3 className="text-sm font-medium text-gray-700">Month</h3>
+                  <h3 className="text-sm font-medium text-foreground">Month</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {eventMonths.map((month) => (
@@ -313,8 +312,8 @@ export default function EventsPage() {
                       key={month}
                       className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
                         selectedMonths.includes(month)
-                          ? 'bg-primary text-white border-primary'
-                          : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-card dark:bg-card/80 text-foreground border-input hover:border-primary/50'
                       }`}
                       onClick={() => toggleMonthFilter(month)}
                     >
@@ -327,7 +326,7 @@ export default function EventsPage() {
               {/* Clear Filters Button */}
               {(selectedTypes.length > 0 || selectedLocations.length > 0 || selectedMonths.length > 0 || searchQuery) && (
                 <button
-                  className="text-sm text-gray-500 hover:text-primary flex items-center gap-1"
+                  className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
                   onClick={clearFilters}
                 >
                   <X className="w-4 h-4" />
@@ -338,11 +337,11 @@ export default function EventsPage() {
             
             {/* Mobile Filters (Slide Down Panel) */}
             {mobileFiltersOpen && (
-              <div className="lg:hidden border border-gray-200 rounded-lg p-4 mt-4 bg-white">
+              <div className="lg:hidden border border-input rounded-lg p-4 mt-4 bg-card dark:bg-card/90">
                 <div className="flex justify-between mb-4">
-                  <h3 className="font-medium text-gray-900">Filters</h3>
+                  <h3 className="font-medium text-foreground">Filters</h3>
                   <button onClick={() => setMobileFiltersOpen(false)}>
-                    <X className="w-5 h-5 text-gray-500" />
+                    <X className="w-5 h-5 text-muted-foreground" />
                   </button>
                 </div>
                 
@@ -350,7 +349,7 @@ export default function EventsPage() {
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-2">
                     <ListFilter className="w-4 h-4 text-primary" />
-                    <h4 className="text-sm font-medium text-gray-700">Event Type</h4>
+                    <h4 className="text-sm font-medium text-foreground">Event Type</h4>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {eventTypes.map((type) => (
@@ -358,8 +357,8 @@ export default function EventsPage() {
                         key={type}
                         className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
                           selectedTypes.includes(type)
-                            ? 'bg-primary text-white border-primary'
-                            : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50'
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-card dark:bg-card/80 text-foreground border-input hover:border-primary/50'
                         }`}
                         onClick={() => toggleTypeFilter(type)}
                       >
@@ -373,7 +372,7 @@ export default function EventsPage() {
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-2">
                     <MapPin className="w-4 h-4 text-primary" />
-                    <h4 className="text-sm font-medium text-gray-700">Location</h4>
+                    <h4 className="text-sm font-medium text-foreground">Location</h4>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {eventLocations.map((location) => (
@@ -381,8 +380,8 @@ export default function EventsPage() {
                         key={location}
                         className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
                           selectedLocations.includes(location)
-                            ? 'bg-primary text-white border-primary'
-                            : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50'
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-card dark:bg-card/80 text-foreground border-input hover:border-primary/50'
                         }`}
                         onClick={() => toggleLocationFilter(location)}
                       >
@@ -396,7 +395,7 @@ export default function EventsPage() {
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Calendar className="w-4 h-4 text-primary" />
-                    <h4 className="text-sm font-medium text-gray-700">Month</h4>
+                    <h4 className="text-sm font-medium text-foreground">Month</h4>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {eventMonths.map((month) => (
@@ -404,8 +403,8 @@ export default function EventsPage() {
                         key={month}
                         className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
                           selectedMonths.includes(month)
-                            ? 'bg-primary text-white border-primary'
-                            : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50'
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-card dark:bg-card/80 text-foreground border-input hover:border-primary/50'
                         }`}
                         onClick={() => toggleMonthFilter(month)}
                       >
@@ -418,7 +417,7 @@ export default function EventsPage() {
                 {/* Clear Button (Mobile) */}
                 <div className="flex justify-end">
                   <button
-                    className="text-sm text-gray-500 hover:text-primary flex items-center gap-1"
+                    className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
                     onClick={clearFilters}
                   >
                     <X className="w-4 h-4" />
@@ -431,10 +430,10 @@ export default function EventsPage() {
             {/* Active Filters Summary */}
             {(selectedTypes.length > 0 || selectedLocations.length > 0 || selectedMonths.length > 0) && (
               <div className="flex flex-wrap items-center gap-2 mt-4">
-                <span className="text-sm text-gray-500">Active filters:</span>
+                <span className="text-sm text-muted-foreground">Active filters:</span>
                 
                 {selectedTypes.map(type => (
-                  <div key={type} className="bg-primary/5 text-primary text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                  <div key={type} className="bg-primary/10 dark:bg-primary/20 text-primary text-xs px-2 py-1 rounded-full flex items-center gap-1">
                     <span>{type}</span>
                     <button onClick={() => toggleTypeFilter(type)}>
                       <X className="w-3 h-3" />
@@ -443,7 +442,7 @@ export default function EventsPage() {
                 ))}
                 
                 {selectedLocations.map(location => (
-                  <div key={location} className="bg-primary/5 text-primary text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                  <div key={location} className="bg-primary/10 dark:bg-primary/20 text-primary text-xs px-2 py-1 rounded-full flex items-center gap-1">
                     <span>{location}</span>
                     <button onClick={() => toggleLocationFilter(location)}>
                       <X className="w-3 h-3" />
@@ -452,7 +451,7 @@ export default function EventsPage() {
                 ))}
                 
                 {selectedMonths.map(month => (
-                  <div key={month} className="bg-primary/5 text-primary text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                  <div key={month} className="bg-primary/10 dark:bg-primary/20 text-primary text-xs px-2 py-1 rounded-full flex items-center gap-1">
                     <span>{month}</span>
                     <button onClick={() => toggleMonthFilter(month)}>
                       <X className="w-3 h-3" />
@@ -465,8 +464,8 @@ export default function EventsPage() {
           
           {/* Results Count */}
           <div className="mb-6">
-            <p className="text-gray-600">
-              Showing <span className="font-medium text-gray-900">{filteredEvents.length}</span> events
+            <p className="text-muted-foreground">
+              Showing <span className="font-medium text-foreground">{filteredEvents.length}</span> events
               {searchQuery && (
                 <span> for "<span className="text-primary">{searchQuery}</span>"</span>
               )}
@@ -488,12 +487,12 @@ export default function EventsPage() {
               <div className="text-primary mb-4">
                 <Search className="w-12 h-12 mx-auto opacity-50" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">No events found</h3>
-              <p className="text-gray-600 mb-6">
+              <h3 className="text-xl font-bold text-foreground mb-2">No events found</h3>
+              <p className="text-muted-foreground mb-6">
                 We couldn't find any events matching your search criteria.
               </p>
               <button
-                className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-all"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium transition-all"
                 onClick={clearFilters}
               >
                 Clear all filters
