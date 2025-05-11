@@ -2,15 +2,19 @@
 
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
+import { useTheme } from '@/providers/theme-provider';
+import { cn } from '@/lib/utils';
 
 export const Footer = () => {
+  const { theme } = useTheme();
+
   return (
-    <footer className="bg-gray-900 text-white pt-20 pb-10">
+    <footer className="bg-primary dark:bg-primary/95 text-primary-foreground pt-20 pb-10">
       <div className="container mx-auto px-6">
         <div className="grid md:grid-cols-6 gap-10">
           <div className="md:col-span-2">
-            <Logo textColor="text-white" className="mb-6" />
-            <p className="text-gray-400 mb-6 max-w-sm">
+            <Logo variant="white" className="mb-6" />
+            <p className="text-primary-foreground/70 dark:text-primary-foreground/80 mb-6 max-w-sm">
               STI Race Connect is the complete solution for running event management, bringing together organizers, marshals, and participants in one seamless platform.
             </p>
             <div className="flex space-x-4">
@@ -18,10 +22,10 @@ export const Footer = () => {
                 <a 
                   key={social} 
                   href="#" 
-                  className="w-10 h-10 rounded-full bg-gray-800 hover:bg-primary flex items-center justify-center transition-colors" 
+                  className="w-10 h-10 rounded-full bg-primary-foreground/10 dark:bg-primary-foreground/15 hover:bg-secondary flex items-center justify-center transition-colors" 
                   aria-label={social}
                 >
-                  <span className="text-xs uppercase">{social.slice(0,2)}</span>
+                  <span className="text-xs uppercase text-primary-foreground">{social.slice(0,2)}</span>
                 </a>
               ))}
             </div>
@@ -37,7 +41,7 @@ export const Footer = () => {
                 { name: 'Enterprise', href: '#' }
               ].map(item => (
                 <li key={item.name}>
-                  <Link href={item.href} className="text-gray-400 hover:text-white transition-colors text-sm">
+                  <Link href={item.href} className="text-primary-foreground/70 dark:text-primary-foreground/80 hover:text-primary-foreground transition-colors text-sm">
                     {item.name}
                   </Link>
                 </li>
@@ -50,7 +54,7 @@ export const Footer = () => {
             <ul className="space-y-3">
               {['Documentation', 'Knowledge Base', 'Blog', 'API Reference'].map(item => (
                 <li key={item}>
-                  <Link href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
+                  <Link href="#" className="text-primary-foreground/70 dark:text-primary-foreground/80 hover:text-primary-foreground transition-colors text-sm">
                     {item}
                   </Link>
                 </li>
@@ -63,7 +67,7 @@ export const Footer = () => {
             <ul className="space-y-3">
               {['About', 'Careers', 'Contact', 'Partner Program'].map(item => (
                 <li key={item}>
-                  <Link href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
+                  <Link href="#" className="text-primary-foreground/70 dark:text-primary-foreground/80 hover:text-primary-foreground transition-colors text-sm">
                     {item}
                   </Link>
                 </li>
@@ -76,7 +80,7 @@ export const Footer = () => {
             <ul className="space-y-3">
               {['Privacy', 'Terms', 'Cookies', 'Licenses'].map(item => (
                 <li key={item}>
-                  <Link href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
+                  <Link href="#" className="text-primary-foreground/70 dark:text-primary-foreground/80 hover:text-primary-foreground transition-colors text-sm">
                     {item}
                   </Link>
                 </li>
@@ -85,13 +89,13 @@ export const Footer = () => {
           </div>
         </div>
         
-        <div className="border-t border-gray-800 mt-16 pt-8">
+        <div className="border-t border-primary-foreground/20 dark:border-primary-foreground/15 mt-16 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-500 text-sm">&copy; 2024 STI Race Connect. All rights reserved.</p>
+            <p className="text-primary-foreground/50 dark:text-primary-foreground/60 text-sm">&copy; 2024 STI Race Connect. All rights reserved.</p>
             <div className="flex space-x-8 mt-4 md:mt-0">
-              <Link href="#" className="text-gray-500 hover:text-white text-sm transition-colors">Privacy Policy</Link>
-              <Link href="#" className="text-gray-500 hover:text-white text-sm transition-colors">Terms of Service</Link>
-              <Link href="#" className="text-gray-500 hover:text-white text-sm transition-colors">Cookie Policy</Link>
+              <Link href="#" className="text-primary-foreground/50 dark:text-primary-foreground/60 hover:text-primary-foreground text-sm transition-colors">Privacy Policy</Link>
+              <Link href="#" className="text-primary-foreground/50 dark:text-primary-foreground/60 hover:text-primary-foreground text-sm transition-colors">Terms of Service</Link>
+              <Link href="#" className="text-primary-foreground/50 dark:text-primary-foreground/60 hover:text-primary-foreground text-sm transition-colors">Cookie Policy</Link>
             </div>
           </div>
         </div>

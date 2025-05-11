@@ -1,10 +1,30 @@
 import type { Metadata } from "next";
 import { Inter, Montserrat } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
+import { NextAuthProvider } from '@/providers/session-provider';
+import { ThemeProvider } from '@/providers/theme-provider';
 
 const montserrat = Montserrat({
   subsets: ["latin"],
   variable: "--font-montserrat",
+});
+
+const satoshi = localFont({
+  src: [
+    {
+      path: "../fonts/Satoshi-Variable.woff2",
+      weight: "300 900",
+      style: "normal",
+    },
+    {
+      path: "../fonts/Satoshi-VariableItalic.woff2",
+      weight: "300 900",
+      style: "italic",
+    }
+  ],
+  variable: "--font-satoshi",
+  display: "swap",
 });
 
 const inter = Inter({
@@ -24,8 +44,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${montserrat.variable} ${inter.variable} font-sans antialiased`}>
+      <body className={`${montserrat.variable} ${satoshi.variable} ${inter.variable} font-sans antialiased`}>
+        <NextAuthProvider>
+          <ThemeProvider>
         {children}
+          </ThemeProvider>
+        </NextAuthProvider>
       </body>
     </html>
   );

@@ -6,48 +6,51 @@ import { Logo } from '@/components/Logo';
 import { Calendar, Users, Trophy, Clock, MapPin, Star, ChevronRight, BarChart, ArrowRight, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { EventCard } from '@/components/EventCard';
+import { useTheme } from '@/providers/theme-provider';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
-  // We don't need mobileMenuOpen state anymore as it's managed in the Header component
+  const { theme } = useTheme();
   
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Hero Section - Modern Design */}
-      <section className="pt-32 md:pt-44 pb-24 md:pb-32 overflow-hidden relative">
+      <section className="pt-32 md:pt-44 pb-24 md:pb-32 overflow-hidden relative bg-gradient-to-b from-primary to-primary/80 text-primary-foreground">
         {/* Background sporty elements */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-          <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full bg-primary/5 blur-3xl"></div>
-          <div className="absolute bottom-20 right-1/4 w-80 h-80 rounded-full bg-secondary/5 blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-accent/5 blur-3xl"></div>
+          <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full bg-secondary/20 blur-3xl"></div>
+          <div className="absolute bottom-20 right-1/4 w-80 h-80 rounded-full bg-secondary/20 blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-white/10 blur-3xl"></div>
+          <div className="absolute top-0 left-0 w-full h-full bg-[url('/assets/noise.png')] opacity-[0.03] pointer-events-none"></div>
         </div>
         
         <div className="container mx-auto px-6">
           <div className="flex flex-col lg:flex-row items-center gap-16">
             <div className="w-full lg:w-1/2 space-y-8">
-              <div className="inline-block bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-bold">
+              <div className="inline-block bg-white/10 text-primary-foreground rounded-full px-4 py-1.5 text-sm font-bold">
                 Race Event Management Solution
               </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-gray-900">
-                Simplify Your <span className="text-primary relative">
+              <h1 className="font-sans text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-primary-foreground">
+                Simplify Your <span className="text-secondary relative">
                   Race Event
                   <span className="absolute bottom-2 left-0 w-full h-2 bg-secondary/30 -z-10 rounded-full"></span>
                 </span> Management
               </h1>
-              <p className="text-lg text-gray-600 max-w-xl">
+              <p className="text-lg text-primary-foreground/90 max-w-xl">
                 The complete platform for organizing running events, managing participants, and tracking results in one seamless experience.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 pt-6">
                 <Link 
                   href="/auth/register" 
-                  className="bg-secondary text-secondary-foreground px-8 py-4 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:bg-secondary/90 hover-scale"
+                  className="bg-secondary text-white px-8 py-4 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:bg-secondary/90 hover-scale"
                 >
                   <span>Start Free Trial</span>
                   <ArrowRight size={16} />
                 </Link>
                 <Link 
                   href="#demo" 
-                  className="bg-white border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-gray-700 px-8 py-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all hover-scale"
+                  className="bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 text-primary-foreground px-8 py-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all hover-scale"
                 >
                   Watch Demo
                 </Link>
@@ -56,18 +59,18 @@ export default function Home() {
               <div className="flex items-center gap-4 pt-8">
                 <div className="flex -space-x-3">
                   {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="w-12 h-12 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden shadow-md">
-                      <span className="text-xs font-bold text-gray-500">#{i}</span>
+                    <div key={i} className="w-12 h-12 rounded-full border-2 border-white/20 bg-primary-foreground/10 flex items-center justify-center overflow-hidden shadow-md">
+                      <span className="text-xs font-bold text-primary-foreground/80">#{i}</span>
                     </div>
                   ))}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-700">Trusted by 500+ organizers</p>
+                  <p className="text-sm font-semibold text-primary-foreground/80">Trusted by 500+ organizers</p>
                   <div className="flex items-center">
                     {[1, 2, 3, 4, 5].map(i => (
                       <Star key={i} className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
                     ))}
-                    <span className="text-xs text-gray-500 ml-1">4.9/5</span>
+                    <span className="text-xs text-primary-foreground/70 ml-1">4.9/5</span>
                   </div>
                 </div>
               </div>
@@ -87,21 +90,21 @@ export default function Home() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                 
                 {/* Floating UI elements for visual interest */}
-                <div className="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-sm rounded-xl p-5 shadow-lg border border-white/20">
+                <div className="absolute bottom-6 left-6 right-6 bg-background/90 backdrop-blur-sm rounded-xl p-5 shadow-lg border border-border dark:bg-background/80">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="font-bold text-gray-900">Marathon 2024</h3>
-                      <p className="text-sm text-gray-600">Registration opens in 3 days</p>
+                      <h3 className="font-bold text-foreground">Marathon 2024</h3>
+                      <p className="text-sm text-muted-foreground">Registration opens in 3 days</p>
                     </div>
-                    <div className="bg-secondary text-white rounded-lg px-3 py-1.5 text-xs font-bold shadow-sm pulse-effect">
+                    <div className="bg-secondary text-secondary-foreground rounded-lg px-3 py-1.5 text-xs font-bold shadow-sm pulse-effect">
                       Trending Event
                     </div>
                   </div>
                 </div>
                 
-                <div className="absolute top-6 right-6 bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border border-white/20 flex items-center gap-2">
+                <div className="absolute top-6 right-6 bg-background/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border border-border dark:bg-background/80 flex items-center gap-2">
                   <div className="h-2.5 w-2.5 rounded-full bg-green-500 pulse-effect"></div>
-                  <span className="text-xs font-bold">Live Dashboard</span>
+                  <span className="text-xs font-bold text-foreground">Live Dashboard</span>
                 </div>
               </div>
             </div>
@@ -109,15 +112,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Brands/Sponsors Section */}
-      <section className="border-y border-gray-200 bg-gray-50 py-12">
+      {/* Add a client logos section similar to the image */}
+      <section className="py-10 bg-background border-b border-border">
         <div className="container mx-auto px-6">
-          <p className="text-center text-sm text-gray-500 mb-8">TRUSTED BY LEADING ORGANIZATIONS</p>
-          <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-8 flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity">
-                <div className="w-24 h-8 bg-gray-300 rounded-md flex items-center justify-center">
-                  <span className="text-xs font-bold text-gray-600">SPONSOR {i}</span>
+          <h3 className="text-center text-sm font-medium text-muted-foreground uppercase tracking-wider mb-8">Trusted by industry leaders</h3>
+          <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-8">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="h-8 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity grayscale hover:grayscale-0">
+                <div className="w-24 h-8 bg-muted rounded-md flex items-center justify-center">
+                  <span className="text-xs font-bold text-muted-foreground">PARTNER {i}</span>
                 </div>
               </div>
             ))}
@@ -132,8 +135,8 @@ export default function Home() {
             <div className="inline-block bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-4">
               All-In-One Solution
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">Everything You Need to Run Successful Events</h2>
-            <p className="text-lg text-gray-600">
+            <h2 className="font-heading text-3xl md:text-4xl font-bold mb-6 text-foreground">Everything You Need to Run Successful Events</h2>
+            <p className="text-lg text-muted-foreground">
               From registration to results, our platform streamlines every aspect of race event management
             </p>
           </div>
@@ -171,12 +174,12 @@ export default function Home() {
                 icon: <BarChart className="h-6 w-6 text-primary" />
               },
             ].map((feature, index) => (
-              <div key={index} className="bg-white rounded-xl border border-gray-200 hover:border-primary/30 hover:shadow-md transition-all p-6 group">
+              <div key={index} className="bg-card rounded-xl border border-border hover:border-primary/30 hover:shadow-md transition-all p-6 group">
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-5 group-hover:bg-primary/20 transition-colors">
                   {feature.icon}
                 </div>
-                <h3 className="text-xl font-semibold mb-3 text-gray-900">{feature.title}</h3>
-                <p className="text-gray-600 mb-4">
+                <h3 className="text-xl font-semibold mb-3 text-foreground">{feature.title}</h3>
+                <p className="text-muted-foreground mb-4">
                   {feature.description}
                 </p>
                 <Link 
@@ -193,14 +196,14 @@ export default function Home() {
       </section>
 
       {/* Event Showcase Section - Modern Cards */}
-      <section id="events" className="py-24 bg-gray-50">
+      <section id="events" className="py-24 bg-white dark:bg-muted/30">
         <div className="container mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center mb-16">
             <div className="inline-block bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-4">
               Upcoming Events
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">Join Our Next Running Events</h2>
-            <p className="text-lg text-gray-600">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-foreground">Join Our Next Running Events</h2>
+            <p className="text-lg text-muted-foreground">
               Discover and register for upcoming races powered by STI Race Connect
             </p>
           </div>
@@ -254,7 +257,7 @@ export default function Home() {
           <div className="mt-12 text-center">
             <Link 
               href="/events"
-              className="inline-flex items-center gap-2 bg-white border border-gray-300 hover:border-primary/50 text-gray-800 hover:text-primary px-6 py-3 rounded-lg font-medium transition-colors"
+              className="inline-flex items-center gap-2 bg-card border border-border hover:border-primary/50 text-foreground hover:text-primary px-6 py-3 rounded-lg font-medium transition-colors"
             >
               Browse All Events
               <ArrowRight size={16} />
@@ -264,14 +267,14 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section - Modern */}
-      <section id="about" className="py-24 bg-white">
+      <section id="about" className="py-24 bg-background">
         <div className="container mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center mb-16">
             <div className="inline-block bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-4">
               Testimonials
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">What Our Users Say</h2>
-            <p className="text-lg text-gray-600">
+            <h2 className="font-heading text-3xl md:text-4xl font-bold mb-6 text-foreground">What Our Users Say</h2>
+            <p className="text-lg text-muted-foreground">
               Race directors, organizers, and participants share their experience
             </p>
           </div>
@@ -300,18 +303,18 @@ export default function Home() {
                 avatar: "/assets/login_page.jpg"
               }
             ].map((testimonial, index) => (
-              <div key={index} className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 hover:border-primary/30 hover:shadow-md transition-all">
+              <div key={index} className="bg-card rounded-xl p-8 shadow-sm border border-border hover:border-primary/30 hover:shadow-md transition-all">
                 <div className="flex mb-6">
                   {Array(5).fill(0).map((_, i) => (
                     <Star 
                       key={i} 
-                      className={`w-5 h-5 ${i < testimonial.stars ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`} 
+                      className={`w-5 h-5 ${i < testimonial.stars ? 'text-yellow-400 fill-yellow-400' : 'text-muted'}`} 
                     />
                   ))}
                 </div>
-                <p className="text-gray-700 mb-6 italic">"{testimonial.quote}"</p>
+                <p className="text-foreground mb-6 italic">"{testimonial.quote}"</p>
                 <div className="flex items-center">
-                  <div className="w-12 h-12 rounded-full overflow-hidden mr-4 border border-gray-200">
+                  <div className="w-12 h-12 rounded-full overflow-hidden mr-4 border border-border">
                     <Image 
                       src={testimonial.avatar}
                       alt={testimonial.name}
@@ -322,8 +325,8 @@ export default function Home() {
                     />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                    <p className="text-sm text-gray-500">{testimonial.role}</p>
+                    <p className="font-semibold text-foreground">{testimonial.name}</p>
+                    <p className="text-sm text-muted-foreground">{testimonial.role}</p>
                   </div>
                 </div>
               </div>
@@ -341,10 +344,10 @@ export default function Home() {
         </div>
         
         <div className="container mx-auto px-6 relative z-10">
-          <div className="max-w-4xl mx-auto bg-white rounded-2xl p-10 shadow-xl">
+          <div className="max-w-4xl mx-auto bg-card rounded-2xl p-10 shadow-xl">
             <div className="text-center mb-8">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">Ready to Transform Your Running Events?</h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              <h2 className="font-sans text-3xl md:text-4xl font-bold mb-4 text-foreground">Ready to Transform Your Running Events?</h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 Join STI Race Connect today and take your event management to the next level.
               </p>
             </div>
@@ -352,14 +355,14 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
                 href="/auth/register" 
-                className="bg-primary hover:bg-primary/90 text-white px-8 py-3.5 rounded-lg font-medium transition-all inline-flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3.5 rounded-lg font-medium transition-all inline-flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
               >
                 <span>Get Started For Free</span>
                 <ArrowRight size={16} />
               </Link>
               <Link 
                 href="/auth/login" 
-                className="border border-gray-300 hover:border-primary/50 text-gray-700 hover:text-primary px-8 py-3.5 rounded-lg font-medium transition-colors inline-flex items-center justify-center"
+                className="border border-border hover:border-primary/50 text-foreground hover:text-primary px-8 py-3.5 rounded-lg font-medium transition-colors inline-flex items-center justify-center"
               >
                 Sign In
               </Link>

@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useRouter } from 'next/navigation';
+import { AlertCircle } from 'lucide-react';
+import { signIn } from 'next-auth/react';
 
 interface LoginFormData {
   email: string;
@@ -16,6 +19,8 @@ interface LoginFormData {
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const router = useRouter();
   
   const {
     register,
@@ -27,11 +32,45 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-    console.log(data);
-    // Here you would handle authentication
-    setTimeout(() => {
+    setLoginError(null);
+    
+    try {
+      // Use Next-Auth's signIn function instead of directly calling the API
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: data.email,
+        password: data.password,
+      });
+      
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+
+      // If successful, check user role and redirect
+      // We need to fetch user data to get the role
+      const userResponse = await fetch('/api/user/profile');
+      
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+      
+      const userData = await userResponse.json();
+      
+      // Redirect based on user role
+      if (userData.role === 'Marshal') {
+        router.push('/dashboard');
+      } else if (userData.role === 'Runner') {
+        router.push('/runner/dashboard');
+      } else {
+        router.push('/');
+      }
+      
+    } catch (error) {
+      console.error("Login error:", error);
+      setLoginError("Invalid email or password. Please try again.");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -88,6 +127,13 @@ export default function LoginPage() {
             Forgot password?
           </Link>
         </div>
+        
+        {loginError && (
+          <div className="p-3 text-sm bg-destructive/10 text-destructive rounded flex items-center">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            {loginError}
+          </div>
+        )}
 
         <Button
           type="submit"
