@@ -30,7 +30,8 @@ import {
   Facebook,
   Twitter,
   Mail as MailIcon,
-  MessageSquare
+  MessageSquare,
+  ChevronDown
 } from 'lucide-react';
 
 // Mock event data (in a real app, this would come from an API/database fetch)
@@ -46,10 +47,10 @@ const mockEvents = [
     created_at: new Date("2023-12-10"),
     updated_at: new Date("2024-01-15"),
     categories: [
-      { id: "1", category_name: "5K Fun Run", description: "Perfect for beginners and casual runners", target_audience: "Casual runners" },
-      { id: "2", category_name: "10K Run", description: "Intermediate distance for regular runners", target_audience: "Regular runners" },
-      { id: "3", category_name: "21K Half Marathon", description: "Challenging half marathon for experienced runners", target_audience: "Experienced runners" },
-      { id: "4", category_name: "42K Full Marathon", description: "Full marathon for elite and experienced runners", target_audience: "Elite runners" }
+      { id: "1", category_name: "5K Fun Run", description: "Perfect for beginners and casual runners", target_audience: "Casual runners", price: 800, discounted_price: 650 },
+      { id: "2", category_name: "10K Run", description: "Intermediate distance for regular runners", target_audience: "Regular runners", price: 1200, discounted_price: 950 },
+      { id: "3", category_name: "21K Half Marathon", description: "Challenging half marathon for experienced runners", target_audience: "Experienced runners", price: 1800, discounted_price: 1450 },
+      { id: "4", category_name: "42K Full Marathon", description: "Full marathon for elite and experienced runners", target_audience: "Elite runners", price: 2500, discounted_price: 2000 }
     ],
     organizers: [
       { name: "John Doe", role: "Event Director" },
@@ -67,9 +68,9 @@ const mockEvents = [
     created_at: new Date("2024-01-15"),
     updated_at: new Date("2024-02-10"),
     categories: [
-      { id: "1", category_name: "5K Trail", description: "Beginner-friendly trail run", target_audience: "Beginner trail runners" },
-      { id: "2", category_name: "10K Trail", description: "Intermediate trail challenge", target_audience: "Intermediate trail runners" },
-      { id: "3", category_name: "21K Trail", description: "Advanced trail half-marathon", target_audience: "Advanced trail runners" }
+      { id: "1", category_name: "5K Trail", description: "Beginner-friendly trail run", target_audience: "Beginner trail runners", price: 900, discounted_price: 750 },
+      { id: "2", category_name: "10K Trail", description: "Intermediate trail challenge", target_audience: "Intermediate trail runners", price: 1300, discounted_price: 1100 },
+      { id: "3", category_name: "21K Trail", description: "Advanced trail half-marathon", target_audience: "Advanced trail runners", price: 2000, discounted_price: 1600 }
     ],
     organizers: [
       { name: "Mike Johnson", role: "Trail Director" },
@@ -82,6 +83,7 @@ export default function EventDetailContent({ eventId }: { eventId: string }) {
   // In a real app, you would fetch the event data based on eventId
   const mockEvent = mockEvents.find(e => e.id === eventId) || mockEvents[0];
   const [selectedCategory, setSelectedCategory] = useState(mockEvent.categories[0]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   
   // Format date for display
   const formatDate = (date: Date) => {
@@ -102,20 +104,30 @@ export default function EventDetailContent({ eventId }: { eventId: string }) {
     }).format(date);
   };
 
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       {/* Back to events link */}
       <div className="pt-28 container mx-auto px-6">
-        <Link href="/events" className="inline-flex items-center text-primary hover:text-primary/80 font-medium mb-4">
+        <Link href="/events" className="inline-flex items-center text-primary hover:text-primary/80 font-medium mb-4 hover:underline underline-offset-4 decoration-secondary decoration-2">
           <ArrowLeft size={16} className="mr-2" />
           Back to events
         </Link>
       </div>
 
       {/* Event Hero Section */}
-      <section className="pb-10">
+      <section className="pb-16">
         <div className="container mx-auto px-6">
-          <div className="relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden mb-8">
+          <div className="relative w-full h-[350px] md:h-[500px] rounded-2xl overflow-hidden mb-12 shadow-xl">
             <Image
               src="/assets/login_page.jpg"
               alt={mockEvent.event_name}
@@ -124,73 +136,80 @@ export default function EventDetailContent({ eventId }: { eventId: string }) {
               priority
               unoptimized
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
             
-            <div className="absolute bottom-0 left-0 w-full p-6 md:p-10">
-              <div className="inline-block bg-secondary text-primary text-xs font-bold px-3 py-1 rounded-full mb-4">
+            <div className="absolute bottom-0 left-0 w-full p-8 md:p-12">
+              <div className="inline-block bg-accent text-white text-xs font-bold px-4 py-2 rounded-lg mb-6 shadow-md">
                 Featured Event
               </div>
-              <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">{mockEvent.event_name}</h1>
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">{mockEvent.event_name}</h1>
               
-              <div className="flex flex-wrap gap-4 text-white">
-                <div className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2 text-secondary" />
-                  <span>{formatDate(mockEvent.event_date)}</span>
+              <div className="flex flex-wrap gap-6 text-white">
+                <div className="flex items-center bg-black/30 backdrop-blur-sm px-4 py-2.5 rounded-lg">
+                  <Calendar className="h-5 w-5 mr-3 text-secondary" />
+                  <span className="font-medium">{formatDate(mockEvent.event_date)}</span>
                 </div>
-                <div className="flex items-center">
-                  <Clock className="h-5 w-5 mr-2 text-secondary" />
-                  <span>{formatTime(mockEvent.event_date)}</span>
+                <div className="flex items-center bg-black/30 backdrop-blur-sm px-4 py-2.5 rounded-lg">
+                  <Clock className="h-5 w-5 mr-3 text-secondary" />
+                  <span className="font-medium">{formatTime(mockEvent.event_date)}</span>
                 </div>
-                <div className="flex items-center">
-                  <MapPin className="h-5 w-5 mr-2 text-secondary" />
-                  <span>{mockEvent.location}</span>
+                <div className="flex items-center bg-black/30 backdrop-blur-sm px-4 py-2.5 rounded-lg">
+                  <MapPin className="h-5 w-5 mr-3 text-secondary" />
+                  <span className="font-medium">{mockEvent.location}</span>
                 </div>
-                <div className="flex items-center">
-                  <Target className="h-5 w-5 mr-2 text-secondary" />
-                  <span>{mockEvent.target_audience}</span>
+                <div className="flex items-center bg-black/30 backdrop-blur-sm px-4 py-2.5 rounded-lg">
+                  <Target className="h-5 w-5 mr-3 text-secondary" />
+                  <span className="font-medium">{mockEvent.target_audience}</span>
                 </div>
               </div>
             </div>
             
             {/* Share button */}
-            <button className="absolute top-6 right-6 bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 p-2 rounded-full">
-              <Share2 size={20} />
-            </button>
+            <div className="absolute top-6 right-6 flex gap-3">
+              <button className="bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 p-3 rounded-lg shadow-md transition-all hover-scale">
+                <Share2 size={20} />
+              </button>
+              <button className="bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 p-3 rounded-lg shadow-md transition-all hover-scale">
+                <Heart size={20} />
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-col lg:flex-row gap-10">
             {/* Main Content */}
             <div className="w-full lg:w-2/3">
               {/* Event Details */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-                <h2 className="text-2xl font-bold mb-4 text-gray-900">About This Event</h2>
-                <p className="text-gray-700 mb-6">
-                  <Info className="inline h-5 w-5 mr-2 text-primary align-text-bottom" />
+              <div className="bg-card rounded-xl border border-border p-8 mb-10 shadow-md hover:shadow-lg transition-all">
+                <h2 className="text-2xl font-bold mb-6 text-foreground flex items-center">
+                  <Info className="h-6 w-6 mr-3 text-primary" />
+                  About This Event
+                </h2>
+                <p className="text-foreground mb-8 text-lg">
                   {mockEvent.description}
                 </p>
                 
-                <div className="grid md:grid-cols-2 gap-6 mb-6">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2">
-                      <Target className="inline h-5 w-5 mr-2 text-primary align-text-bottom" />
+                <div className="grid md:grid-cols-2 gap-6 mb-8">
+                  <div className="bg-primary/5 rounded-xl p-5 border border-primary/10 hover:border-primary/20 transition-all hover-scale">
+                    <h3 className="font-bold text-foreground mb-3 flex items-center text-lg">
+                      <Target className="h-5 w-5 mr-2 text-primary" />
                       Target Audience
                     </h3>
-                    <p className="text-gray-700">{mockEvent.target_audience}</p>
+                    <p className="text-foreground">{mockEvent.target_audience}</p>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2">
-                      <User className="inline h-5 w-5 mr-2 text-primary align-text-bottom" />
+                  <div className="bg-primary/5 rounded-xl p-5 border border-primary/10 hover:border-primary/20 transition-all hover-scale">
+                    <h3 className="font-bold text-foreground mb-3 flex items-center text-lg">
+                      <User className="h-5 w-5 mr-2 text-primary" />
                       Organized By
                     </h3>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {mockEvent.organizers.map((organizer, index) => (
                         <div key={index} className="flex items-center">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-2">
-                            <span className="text-xs font-medium text-primary">{organizer.name[0]}</span>
+                          <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center mr-3 border border-primary/20">
+                            <span className="text-sm font-bold text-primary">{organizer.name[0]}</span>
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{organizer.name}</p>
-                            <p className="text-xs text-gray-500">{organizer.role}</p>
+                            <p className="font-medium text-foreground">{organizer.name}</p>
+                            <p className="text-sm text-muted-foreground">{organizer.role}</p>
                           </div>
                         </div>
                       ))}
@@ -198,42 +217,42 @@ export default function EventDetailContent({ eventId }: { eventId: string }) {
                   </div>
                 </div>
                 
-                <div className="border-t border-gray-200 pt-6">
-                  <h3 className="font-semibold text-gray-900 mb-4">
-                    <Flag className="inline h-5 w-5 mr-2 text-primary align-text-bottom" />
+                <div className="border-t border-border pt-8">
+                  <h3 className="font-bold text-foreground mb-6 flex items-center text-lg">
+                    <Flag className="h-5 w-5 mr-2 text-primary" />
                     Event Timeline
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="flex">
-                      <div className="mr-4 flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm">1</div>
-                        <div className="w-0.5 h-full bg-gray-200 mt-2"></div>
+                      <div className="mr-5 flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold shadow-md">1</div>
+                        <div className="w-0.5 h-full bg-primary/20 mt-3"></div>
                       </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900">Registration Opens</h4>
-                        <p className="text-sm text-gray-500">May 1, 2024</p>
-                        <p className="text-sm text-gray-700 mt-1">Early bird registration begins</p>
+                      <div className="hover-scale transition-all">
+                        <h4 className="font-bold text-foreground text-lg">Registration Opens</h4>
+                        <p className="text-sm text-secondary font-medium mt-1">May 1, 2024</p>
+                        <p className="text-foreground mt-2">Early bird registration begins</p>
                       </div>
                     </div>
                     <div className="flex">
-                      <div className="mr-4 flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm">2</div>
-                        <div className="w-0.5 h-full bg-gray-200 mt-2"></div>
+                      <div className="mr-5 flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold shadow-md">2</div>
+                        <div className="w-0.5 h-full bg-primary/20 mt-3"></div>
                       </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900">Race Kit Distribution</h4>
-                        <p className="text-sm text-gray-500">June 13-14, 2024</p>
-                        <p className="text-sm text-gray-700 mt-1">Pick up your bib and race kit</p>
+                      <div className="hover-scale transition-all">
+                        <h4 className="font-bold text-foreground text-lg">Race Kit Distribution</h4>
+                        <p className="text-sm text-secondary font-medium mt-1">June 13-14, 2024</p>
+                        <p className="text-foreground mt-2">Pick up your bib and race kit</p>
                       </div>
                     </div>
                     <div className="flex">
-                      <div className="mr-4 flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm">3</div>
+                      <div className="mr-5 flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold shadow-md">3</div>
                       </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900">Race Day</h4>
-                        <p className="text-sm text-gray-500">June 15, 2024</p>
-                        <p className="text-sm text-gray-700 mt-1">Assembly time 4:30 AM</p>
+                      <div className="hover-scale transition-all">
+                        <h4 className="font-bold text-foreground text-lg">Race Day</h4>
+                        <p className="text-sm text-secondary font-medium mt-1">June 15, 2024</p>
+                        <p className="text-foreground mt-2">Assembly time 4:30 AM</p>
                       </div>
                     </div>
                   </div>
@@ -241,142 +260,226 @@ export default function EventDetailContent({ eventId }: { eventId: string }) {
               </div>
 
               {/* Categories Section */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-                <h2 className="text-2xl font-bold mb-4 text-gray-900">
-                  <Award className="inline h-6 w-6 mr-2 text-primary align-text-bottom" />
+              <div className="bg-card rounded-xl border border-border p-8 mb-10 shadow-md hover:shadow-lg transition-all">
+                <h2 className="text-2xl font-bold mb-6 text-foreground flex items-center">
+                  <Award className="h-6 w-6 mr-3 text-primary" />
                   Race Categories
                 </h2>
+                
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                   {mockEvent.categories.map((category) => (
                     <button
                       key={category.id}
-                      className={`p-4 rounded-lg border text-center transition-all ${
-                        selectedCategory.id === category.id 
-                          ? 'border-primary bg-primary/5 text-primary' 
-                          : 'border-gray-200 hover:border-primary/30 text-gray-700'
-                      }`}
                       onClick={() => setSelectedCategory(category)}
+                      className={`${
+                        selectedCategory.id === category.id
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-card hover:bg-primary/5 text-foreground border-border'
+                      } border rounded-xl p-4 text-center transition-all hover-scale shadow-sm`}
                     >
-                      <h3 className="font-semibold">{category.category_name}</h3>
+                      <span className="block font-bold">{category.category_name}</span>
                     </button>
                   ))}
                 </div>
                 
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="text-xl font-semibold mb-3">{selectedCategory.category_name}</h3>
-                  <p className="text-gray-700 mb-4">{selectedCategory.description}</p>
-                  <div className="mb-4">
-                    <span className="text-sm font-medium text-gray-500">Suitable for:</span>
-                    <p className="text-gray-900">
-                      <Target className="inline h-4 w-4 mr-1 text-primary align-text-bottom" />
-                      {selectedCategory.target_audience}
-                    </p>
+                <div className="bg-primary/5 rounded-xl p-6 border border-primary/10">
+                  <h3 className="font-bold text-xl mb-3 text-foreground">{selectedCategory.category_name}</h3>
+                  <p className="text-foreground mb-4">{selectedCategory.description}</p>
+                  <div className="flex items-center text-muted-foreground mb-2">
+                    <Target className="h-5 w-5 mr-2 text-primary" />
+                    <span>{selectedCategory.target_audience}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-accent">{formatCurrency(selectedCategory.discounted_price)}</span>
+                    <span className="text-sm line-through text-muted-foreground">{formatCurrency(selectedCategory.price)}</span>
+                    <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-md">Early Bird</span>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Sidebar */}
-            <div className="w-full lg:w-1/3">
-              <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-24">
-                <h2 className="text-xl font-bold mb-4 text-gray-900">Register for This Event</h2>
-                <p className="text-sm text-gray-700 mb-6">Select a category and complete your registration to secure your spot in this event.</p>
+              {/* Location Section */}
+              <div className="bg-card rounded-xl border border-border overflow-hidden shadow-md hover:shadow-lg transition-all mb-10">
+                <div className="p-8">
+                  <h2 className="text-2xl font-bold mb-6 text-foreground flex items-center">
+                    <MapPin className="h-6 w-6 mr-3 text-primary" />
+                    Event Location
+                  </h2>
+                  <p className="text-foreground mb-4">{mockEvent.location}</p>
+                </div>
                 
-                <div className="space-y-4 mb-6">
-                  {mockEvent.categories.map((category) => (
-                    <div key={category.id} className="flex items-center border border-gray-200 rounded-lg p-3">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{category.category_name}</h3>
-                        <p className="text-xs text-gray-500 mt-1">₱1,200.00</p>
+                <div className="h-[300px] w-full bg-gray-200 relative flex items-center justify-center">
+                  {/* This would be a real map in a production app */}
+                  <div className="text-center px-6">
+                    <MapPin className="h-12 w-12 text-primary mb-4 mx-auto" />
+                    <p className="text-foreground font-medium text-lg mb-2">Interactive Map Coming Soon</p>
+                    <p className="text-muted-foreground">A detailed map of the race route will be available here</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Similar Events Section - Moved from sidebar to main content */}
+              <div className="mb-10">
+                <h2 className="text-2xl font-bold mb-6 text-foreground flex items-center">
+                  <Calendar className="h-6 w-6 mr-3 text-primary" />
+                  Similar Events
+                </h2>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {mockEvents.filter(e => e.id !== eventId).map((event) => (
+                    <div key={event.id} className="group relative bg-card rounded-xl overflow-hidden transition-all hover:shadow-lg border border-border hover-scale hover:border-primary/30 block">
+                      <div className="h-[200px] relative overflow-hidden">
+                        <Image 
+                          src="/assets/login_page.jpg" 
+                          alt={event.event_name}
+                          fill
+                          className="object-cover transition-transform duration-700 group-hover:scale-105"
+                          unoptimized
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent z-10"></div>
+                        <div className="absolute bottom-0 left-0 right-0 z-20 px-5 py-4 flex justify-between items-center backdrop-blur-sm bg-black/40">
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center text-white text-sm">
+                              <Calendar size={14} className="mr-1.5 text-secondary" /> 
+                              <span className="font-medium">{formatDate(event.event_date)}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <Link href={`/register?event=${mockEvent.id}&category=${category.id}`} 
-                          className="text-xs bg-primary/10 text-primary font-medium px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors">
-                          Select
+                      <div className="p-4">
+                        <Link href={`/events/${event.id}`}>
+                          <h3 className="text-lg font-bold text-foreground mb-2 group-hover:text-primary transition-colors line-clamp-1 flex items-center gap-2">
+                            {event.event_name}
+                            <ChevronRight className="h-4 w-4 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </h3>
                         </Link>
+                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{event.description}</p>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <MapPin size={14} className="mr-1.5 text-primary" />
+                          <span>{event.location}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
-                
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  <h3 className="font-medium text-gray-900 mb-2 flex items-center">
-                    <Info className="h-4 w-4 mr-2 text-primary" />
-                    Registration Info
-                  </h3>
-                  <ul className="space-y-2 text-sm text-gray-700">
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>Registration closes on June 1, 2024</span>
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>Race kit includes bib, timing chip, and event shirt</span>
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-4 w-4 mr-2 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>Finisher medal for all participants</span>
-                    </li>
-                  </ul>
+              </div>
+            </div>
+            
+            {/* Sidebar */}
+            <div className="w-full lg:w-1/3">
+              {/* Make entire sidebar content sticky */}
+              <div className="sticky top-28 space-y-8">
+                {/* Registration CTA */}
+                <div className="bg-card rounded-xl border border-border p-6 shadow-md">
+                  <h3 className="text-xl font-bold mb-4 text-foreground">Register for this Event</h3>
+                  
+                  {/* Category Selection Dropdown */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">
+                      Select Race Category
+                    </label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        className="flex justify-between items-center w-full p-3 rounded-lg border border-border hover:border-primary/30 bg-background text-left"
+                        onClick={() => setDropdownOpen(!dropdownOpen)}
+                      >
+                        <div>
+                          <h4 className="font-medium text-foreground">{selectedCategory.category_name}</h4>
+                          <p className="text-xs text-muted-foreground">{selectedCategory.target_audience}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <div className="text-accent font-bold">{formatCurrency(selectedCategory.discounted_price)}</div>
+                            <div className="text-xs line-through text-muted-foreground text-right">{formatCurrency(selectedCategory.price)}</div>
+                          </div>
+                          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+                        </div>
+                      </button>
+                      
+                      {dropdownOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 overflow-hidden">
+                          {mockEvent.categories.map((category) => (
+                            <div 
+                              key={category.id}
+                              onClick={() => {
+                                setSelectedCategory(category);
+                                setDropdownOpen(false);
+                              }}
+                              className={`flex justify-between items-center p-3 cursor-pointer border-b border-border last:border-0 hover:bg-primary/5 transition-colors ${
+                                selectedCategory.id === category.id ? 'bg-primary/5' : ''
+                              }`}
+                            >
+                              <div>
+                                <h4 className="font-medium text-foreground">{category.category_name}</h4>
+                                <p className="text-xs text-muted-foreground">{category.target_audience}</p>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-accent font-bold">{formatCurrency(category.discounted_price)}</div>
+                                <div className="text-xs line-through text-muted-foreground">{formatCurrency(category.price)}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Category Details */}
+                  <div className="bg-primary/5 rounded-lg p-4 mb-6 border border-primary/10">
+                    <div className="flex items-center text-foreground mb-2">
+                      <Target className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
+                      <span className="text-sm">{selectedCategory.description}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-md">Save {Math.round((1 - selectedCategory.discounted_price / selectedCategory.price) * 100)}%</span>
+                      <span className="text-xs text-muted-foreground">Early Bird Special</span>
+                    </div>
+                  </div>
+                  
+                  <Link 
+                    href="#register" 
+                    className="bg-secondary text-secondary-foreground px-5 py-3 rounded-xl font-medium flex items-center justify-center gap-2 shadow-md hover:bg-secondary/90 hover-scale transition-all w-full mb-4"
+                  >
+                    <Check className="h-5 w-5" />
+                    Register Now
+                  </Link>
+                  
+                  <p className="text-xs text-muted-foreground text-center">
+                    Registration closes on June 1, 2024
+                  </p>
                 </div>
                 
-                <div className="border-t border-gray-200 pt-6 space-y-4">
-                  <h3 className="font-medium text-gray-900">Contact Organizer</h3>
-                  <div className="flex items-center">
-                    <Phone className="h-4 w-4 mr-2 text-primary" />
-                    <span className="text-sm text-gray-700">+63 (123) 456-7890</span>
+                {/* Contact Information */}
+                <div className="bg-card rounded-xl border border-border p-6 shadow-md">
+                  <h3 className="text-xl font-bold mb-4 text-foreground">Contact Information</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-start">
+                      <Phone className="h-5 w-5 text-primary mr-3 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-foreground">+63 123 456 7890</p>
+                        <p className="text-sm text-muted-foreground">Weekdays 9AM - 5PM</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <Mail className="h-5 w-5 text-primary mr-3 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-foreground">event@stievent.com</p>
+                        <p className="text-sm text-muted-foreground">For inquiries</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center">
-                    <Mail className="h-4 w-4 mr-2 text-primary" />
-                    <span className="text-sm text-gray-700">events@stiraceconnect.com</span>
+                  
+                  <div className="border-t border-border mt-5 pt-5">
+                    <h4 className="font-medium text-foreground mb-3">Have Questions?</h4>
+                    <div className="flex gap-3">
+                      <button className="bg-primary text-white py-2 px-4 rounded-lg flex-1 font-medium hover:bg-primary/90 transition-all">Send Message</button>
+                      <button className="bg-white border border-primary/30 text-primary py-2 px-4 rounded-lg flex items-center justify-center hover:bg-primary/5 transition-all">
+                        <Smartphone className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-      
-      {/* Related Events */}
-      <section className="bg-gray-50 py-16">
-        <div className="container mx-auto px-6">
-          <h2 className="text-2xl font-bold mb-8 text-gray-900">Related Events</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {mockEvents.filter(event => event.id !== eventId).map((event) => (
-              <div key={event.id} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div className="relative h-48">
-                  <Image
-                    src="/assets/login_page.jpg"
-                    alt={event.event_name}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                  <div className="absolute bottom-0 left-0 p-4">
-                    <span className="text-xs font-medium text-white bg-primary/80 px-2 py-1 rounded-full">
-                      Upcoming
-                    </span>
-                    <h3 className="text-lg font-bold text-white mt-2">{event.event_name}</h3>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <div className="flex items-center text-sm text-gray-500 mb-3">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    <span>{formatDate(event.event_date)}</span>
-                    <span className="mx-2">•</span>
-                    <MapPin className="h-4 w-4 mr-1" />
-                    <span>{event.location}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4">{event.description.substring(0, 80)}...</p>
-                  <Link href={`/events/${event.id}`} className="text-primary font-medium text-sm flex items-center hover:text-primary/80">
-                    View details
-                    <ChevronRight size={16} className="ml-1" />
-                  </Link>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>

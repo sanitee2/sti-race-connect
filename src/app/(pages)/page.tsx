@@ -13,40 +13,50 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section - Modern Design */}
-      <section className="pt-28 md:pt-36 pb-16 md:pb-24 overflow-hidden">
+      <section className="pt-32 md:pt-44 pb-24 md:pb-32 overflow-hidden relative">
+        {/* Background sporty elements */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
+          <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full bg-primary/5 blur-3xl"></div>
+          <div className="absolute bottom-20 right-1/4 w-80 h-80 rounded-full bg-secondary/5 blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-accent/5 blur-3xl"></div>
+        </div>
+        
         <div className="container mx-auto px-6">
-          <div className="flex flex-col lg:flex-row items-center gap-12">
+          <div className="flex flex-col lg:flex-row items-center gap-16">
             <div className="w-full lg:w-1/2 space-y-8">
-              <div className="inline-block bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium">
+              <div className="inline-block bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-bold">
                 Race Event Management Solution
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-gray-900">
-                Simplify Your <span className="text-primary">Race Event</span> Management
+                Simplify Your <span className="text-primary relative">
+                  Race Event
+                  <span className="absolute bottom-2 left-0 w-full h-2 bg-secondary/30 -z-10 rounded-full"></span>
+                </span> Management
               </h1>
               <p className="text-lg text-gray-600 max-w-xl">
                 The complete platform for organizing running events, managing participants, and tracking results in one seamless experience.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-6">
                 <Link 
                   href="/auth/register" 
-                  className="bg-primary hover:bg-primary/90 text-white px-6 py-3.5 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                  className="bg-secondary text-secondary-foreground px-8 py-4 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:bg-secondary/90 hover-scale"
                 >
                   <span>Start Free Trial</span>
                   <ArrowRight size={16} />
                 </Link>
                 <Link 
                   href="#demo" 
-                  className="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 px-6 py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 transition-all"
+                  className="bg-white border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-gray-700 px-8 py-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all hover-scale"
                 >
                   Watch Demo
                 </Link>
               </div>
               
-              <div className="flex items-center gap-4 pt-4">
+              <div className="flex items-center gap-4 pt-8">
                 <div className="flex -space-x-3">
                   {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden">
+                    <div key={i} className="w-12 h-12 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden shadow-md">
                       <span className="text-xs font-bold text-gray-500">#{i}</span>
                     </div>
                   ))}
@@ -64,8 +74,8 @@ export default function Home() {
             </div>
             
             <div className="w-full lg:w-1/2 relative">
-              <div className="absolute -z-10 w-[500px] h-[500px] bg-gradient-to-r from-primary/20 to-secondary/20 rounded-full blur-3xl top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
-              <div className="relative w-full max-w-xl h-[440px] rounded-2xl overflow-hidden shadow-2xl mx-auto">
+              <div className="absolute -z-10 w-[600px] h-[600px] sporty-gradient opacity-20 rounded-full blur-3xl top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+              <div className="relative w-full max-w-2xl h-[500px] rounded-2xl overflow-hidden shadow-2xl mx-auto hover-scale transition-all duration-700">
                 <Image
                   src="/assets/login_page.jpg" 
                   alt="Race Connect Dashboard"
@@ -77,21 +87,21 @@ export default function Home() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                 
                 {/* Floating UI elements for visual interest */}
-                <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/20">
+                <div className="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-sm rounded-xl p-5 shadow-lg border border-white/20">
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-bold text-gray-900">Marathon 2024</h3>
                       <p className="text-sm text-gray-600">Registration opens in 3 days</p>
                     </div>
-                    <div className="bg-primary/10 text-primary rounded-lg px-2 py-1 text-xs font-semibold">
+                    <div className="bg-secondary text-white rounded-lg px-3 py-1.5 text-xs font-bold shadow-sm pulse-effect">
                       Trending Event
                     </div>
                   </div>
                 </div>
                 
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-white/20 flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                  <span className="text-xs font-medium">Live Dashboard</span>
+                <div className="absolute top-6 right-6 bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border border-white/20 flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full bg-green-500 pulse-effect"></div>
+                  <span className="text-xs font-bold">Live Dashboard</span>
                 </div>
               </div>
             </div>
