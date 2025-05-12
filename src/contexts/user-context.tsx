@@ -31,6 +31,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   // Fetch user profile data when session is available
   useEffect(() => {
@@ -42,6 +43,22 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
+        // Try to get cached user data first
+        const cachedUser = sessionStorage.getItem('cachedUserData');
+        if (cachedUser) {
+          try {
+            const parsedUser = JSON.parse(cachedUser);
+            setUser(parsedUser);
+            setIsLoading(false);
+            setHasLoadedOnce(true);
+            return;
+          } catch (e) {
+            // If parsing fails, continue with API fetch
+            sessionStorage.removeItem('cachedUserData');
+          }
+        }
+
+        // Only set loading if we don't have cached data
         setIsLoading(true);
         
         // Fetch user data from API endpoint
@@ -58,8 +75,12 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
         const userData = await response.json();
         
+        // Cache the user data
+        sessionStorage.setItem('cachedUserData', JSON.stringify(userData));
+        
         setUser(userData);
         setIsLoading(false);
+        setHasLoadedOnce(true);
       } catch (err) {
         console.error("Error fetching user data:", err);
         setError(err instanceof Error ? err : new Error("Failed to fetch user data"));
@@ -67,13 +88,13 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    // Only fetch user data if we have an active session
-    if (status === "authenticated") {
+    // Only fetch user data if we have an active session and haven't loaded once
+    if (status === "authenticated" && !hasLoadedOnce) {
       fetchUserData();
     } else if (status === "unauthenticated") {
       setIsLoading(false);
     }
-  }, [session, status]);
+  }, [session, status, hasLoadedOnce]);
 
   const updateUser = async (updatedUser: User) => {
     try {
@@ -92,6 +113,10 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Update local state only after successful API call
       const updatedData = await response.json();
+      
+      // Update cache as well
+      sessionStorage.setItem('cachedUserData', JSON.stringify(updatedData));
+      
       setUser(updatedData);
     } catch (err) {
       console.error("Error updating user:", err);
@@ -101,11 +126,15 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
+      // Clear cached user data
+      sessionStorage.removeItem('cachedUserData');
+      
       // Use NextAuth's signOut function
       await signOut({ redirect: false });
       
       // Clear user data from state
       setUser(null);
+      setHasLoadedOnce(false);
     } catch (err) {
       console.error("Logout error:", err);
     }
