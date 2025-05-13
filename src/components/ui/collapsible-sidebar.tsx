@@ -174,7 +174,7 @@ function UserProfileDropdown({ isCollapsed }: { isCollapsed: boolean }) {
   if (isCollapsed) {
     return (
       <>
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative px-2" ref={dropdownRef}>
           <button 
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex justify-center items-center p-2 w-full hover:bg-white/10 rounded-md transition-colors"
