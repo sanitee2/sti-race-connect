@@ -1,7 +1,12 @@
 "use client";
 
-export default async function OrganizationDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  // Wait for the params Promise to resolve
+type PageProps = {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function OrganizationDetailPage({ params }: PageProps) {
+  // Wait for the params Promise to resolve or use Promise.resolve for non-Promise values
   const resolvedParams = await params;
   
   return (
