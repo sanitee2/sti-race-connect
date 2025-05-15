@@ -25,8 +25,9 @@ export function generateStaticParams() {
 }
 
 // Generate metadata
-export function generateMetadata({ params }: EventPageParams): GenerateMetadataReturn {
-  const event = mockEvents.find(e => e.id === params.id) || mockEvents[0];
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const resolvedParams = await params;
+  const event = mockEvents.find(e => e.id === resolvedParams.id) || mockEvents[0];
   
   return {
     title: `${event.event_name} | STI Race Connect`,
@@ -35,13 +36,19 @@ export function generateMetadata({ params }: EventPageParams): GenerateMetadataR
 }
 
 // Page component with proper type annotation
-export default async function EventPage({ params }: EventPageParams) {
-  // Convert params to Promise to satisfy Next.js type constraints
-  Object.setPrototypeOf(params, Promise.prototype);
+export default async function EventPage({ 
+  params,
+  searchParams 
+}: { 
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  // Now params is explicitly a Promise
+  const resolvedParams = await params;
   
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <EventDetailContent eventId={params.id} />
+      <EventDetailContent eventId={resolvedParams.id} />
     </div>
   );
 } 

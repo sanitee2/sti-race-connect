@@ -19,10 +19,43 @@ export function OrganizationRoleCombobox({
   className,
   disabled = false,
 }: OrganizationRoleComboboxProps) {
-  // Get roles for the selected organization
-  const roles = React.useMemo(() => {
-    if (!organizationId) return [];
-    return getOrganizationRoles(organizationId);
+  // State to store roles
+  const [roles, setRoles] = React.useState<Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    is_leadership: boolean;
+    is_default: boolean;
+  }>>([]);
+  const [loading, setLoading] = React.useState(false);
+  
+  // Fetch roles when organizationId changes
+  React.useEffect(() => {
+    let isMounted = true;
+    
+    async function fetchRoles() {
+      if (!organizationId) return;
+      
+      setLoading(true);
+      try {
+        const fetchedRoles = await getOrganizationRoles(organizationId);
+        if (isMounted) {
+          setRoles(fetchedRoles);
+        }
+      } catch (error) {
+        console.error("Error fetching roles:", error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+    
+    fetchRoles();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [organizationId]);
   
   // Convert roles to combobox options
@@ -33,8 +66,8 @@ export function OrganizationRoleCombobox({
     }));
   }, [roles]);
   
-  // If no organization is selected, or if there are no roles available
-  if (!organizationId || roleOptions.length === 0) {
+  // If no organization is selected, or if there are no roles available and not loading
+  if (!organizationId || (!loading && roleOptions.length === 0)) {
     return (
       <Combobox
         options={[]}
@@ -55,16 +88,16 @@ export function OrganizationRoleCombobox({
       options={roleOptions}
       value={value}
       onChange={onChange}
-      placeholder="Select a role (optional)"
+      placeholder={loading ? "Loading roles..." : "Select a role (optional)"}
       emptyMessage="No roles found."
       className={className}
-      disabled={disabled}
+      disabled={disabled || loading}
     />
   );
 }
 
 // Helper function to get role details by ID
-export function getRoleById(organizationId: string, roleId: string) {
-  const roles = getOrganizationRoles(organizationId);
-  return roles.find(role => role.id === roleId);
+export async function getRoleById(organizationId: string, roleId: string) {
+  const roles = await getOrganizationRoles(organizationId);
+  return roles.find((role: { id: string }) => role.id === roleId);
 } 

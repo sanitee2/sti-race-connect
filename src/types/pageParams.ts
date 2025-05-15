@@ -12,20 +12,20 @@ import { Metadata, ResolvingMetadata } from 'next';
  * This satisfies Next.js PageProps constraint by extending Promise
  */
 export type PageParams<T extends string> = {
-  params: {
+  params: Promise<{
     [key in T]: string;
-  } & Promise<any>;
-  searchParams?: { [key: string]: string | string[] | undefined };
+  }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 /**
  * Event page params
  */
 export type EventPageParams = {
-  params: {
+  params: Promise<{
     id: string;
-  } & Promise<any>;
-  searchParams?: { [key: string]: string | string[] | undefined };
+  }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 /**

@@ -15,6 +15,7 @@ export const Header = () => {
   
   // Helper function to check if link is active
   const isActive = (path: string) => {
+    if (!pathname) return false;
     if (path === '/' && pathname === '/') return true;
     if (path !== '/' && pathname.startsWith(path)) return true;
     return false;
@@ -39,7 +40,7 @@ export const Header = () => {
             
             <Link 
               href="/#features" 
-              className={`font-medium transition-colors text-sm py-1 ${pathname.includes('#features') ? 'text-secondary' : 'text-primary-foreground hover:text-secondary/90'}`}
+              className={`font-medium transition-colors text-sm py-1 ${pathname?.includes('#features') ? 'text-secondary' : 'text-primary-foreground hover:text-secondary/90'}`}
             >
               Features
             </Link>
@@ -53,7 +54,7 @@ export const Header = () => {
             
             <Link 
               href="/#about" 
-              className={`font-medium transition-colors text-sm py-1 ${pathname.includes('#about') ? 'text-secondary' : 'text-primary-foreground hover:text-secondary/90'}`}
+              className={`font-medium transition-colors text-sm py-1 ${pathname?.includes('#about') ? 'text-secondary' : 'text-primary-foreground hover:text-secondary/90'}`}
             >
               About
             </Link>
@@ -115,7 +116,7 @@ export const Header = () => {
             </Link>
             <Link 
               href="/#features" 
-              className={`font-medium py-2 ${pathname.includes('#features') ? 'text-secondary' : 'text-primary-foreground hover:text-secondary/90'}`}
+              className={`font-medium py-2 ${pathname?.includes('#features') ? 'text-secondary' : 'text-primary-foreground hover:text-secondary/90'}`}
               onClick={() => setMobileMenuOpen(false)}
             >
               Features
@@ -129,7 +130,7 @@ export const Header = () => {
             </Link>
             <Link 
               href="/#about" 
-              className={`font-medium py-2 ${pathname.includes('#about') ? 'text-secondary' : 'text-primary-foreground hover:text-secondary/90'}`}
+              className={`font-medium py-2 ${pathname?.includes('#about') ? 'text-secondary' : 'text-primary-foreground hover:text-secondary/90'}`}
               onClick={() => setMobileMenuOpen(false)}
             >
               About

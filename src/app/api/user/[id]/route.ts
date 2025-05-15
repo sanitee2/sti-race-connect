@@ -5,9 +5,10 @@ import { authOptions } from '@/lib/auth';
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params;
     // Get the session to check if user is authenticated
     const session = await getServerSession(authOptions);
 
@@ -19,7 +20,7 @@ export async function PATCH(
     }
 
     // Check if user is updating their own profile or has admin permissions
-    if (session.user.id !== params.id && session.user.role !== 'Admin') {
+    if (session.user.id !== resolvedParams.id && session.user.role !== 'Admin') {
       return NextResponse.json(
         { error: 'Forbidden: You can only update your own profile' },
         { status: 403 }
@@ -31,7 +32,7 @@ export async function PATCH(
 
     // Update the user data
     const user = await prisma.users.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: {
         name: userData.name,
         email: userData.email,

@@ -2,20 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { createRouteHandler } from '@/lib/route-handlers';
+
+// Define the params type
+type OrganizationRouteParams = {
+  id: string;
+};
 
 // GET handler to retrieve a specific organization by ID
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params;
     const session = await getServerSession(authOptions);
     
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const organizationId = params.id;
+    const organizationId = resolvedParams.id;
     
     if (!organizationId) {
       return NextResponse.json(
@@ -92,16 +99,17 @@ export async function GET(
 // PATCH handler to update a specific organization
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params;
     const session = await getServerSession(authOptions);
     
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const organizationId = params.id;
+    const organizationId = resolvedParams.id;
     
     if (!organizationId) {
       return NextResponse.json(
@@ -167,16 +175,17 @@ export async function PATCH(
 // DELETE handler to delete a specific organization
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params;
     const session = await getServerSession(authOptions);
     
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const organizationId = params.id;
+    const organizationId = resolvedParams.id;
     
     if (!organizationId) {
       return NextResponse.json(

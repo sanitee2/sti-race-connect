@@ -316,6 +316,7 @@ export function CollapsibleSidebar({ navItems, showUserProfile = true }: Collaps
   
   // Check if path is active - handling the route group structure
   const isActiveRoute = (route: string) => {
+    if (!pathname) return false;
     return pathname.endsWith(route);
   };
   
