@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
         name: true,
         email: true,
         role: true,
+        profile_picture: true,
         marshal_profile: {
           select: {
             organization_name: true,
@@ -85,6 +86,7 @@ export async function GET(req: NextRequest) {
       name: user.name,
       email: user.email,
       role: user.role,
+      profileImage: user.profile_picture,
       stats: {
         upcomingEvents: upcomingEventsCount,
         totalParticipants: participantsCount,

@@ -22,6 +22,7 @@ const runnerProfileSchema = z.object({
   emergencyContactName: z.string(),
   emergencyContactPhone: z.string(),
   emergencyContactRelationship: z.string(),
+  organizationId: z.string().optional(), // Optional organization ID
 });
 
 // Marshal profile schema
@@ -29,10 +30,11 @@ const marshalProfileSchema = z.object({
   dateOfBirth: z.date().or(z.string().transform(val => new Date(val))),
   gender: z.enum(['Male', 'Female', 'Other']),
   address: z.string(),
-  organizationName: z.string(),
-  rolePosition: z.string(),
+  organizationId: z.string().optional(), // Optional organization ID
+  organizationName: z.string(), // Set default value on the client
+  rolePosition: z.string().default("Member"), // Default role position
   socialMediaLinks: z.string().nullable().optional(),
-  responsibilities: z.string(),
+  responsibilities: z.string().default("General marshal duties"), // Default responsibilities
 });
 
 // Validation schemas based on the Prisma model
@@ -47,6 +49,7 @@ const userSchema = z.object({
     .regex(/[0-9]/, 'Password must contain at least one number')
     .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/, 'Password must contain at least one special character'),
   phoneNumber: z.string().nullable().optional(),
+  profile_picture: z.string().nullable().optional(),
   role: z.enum(['Runner', 'Marshal']),
   profile: z.union([runnerProfileSchema, marshalProfileSchema]),
 });
@@ -84,6 +87,7 @@ export async function POST(req: Request) {
           email: validatedData.email,
           password: hashedPassword,
           phone_number: validatedData.phoneNumber,
+          profile_picture: validatedData.profile_picture,
           role: validatedData.role,
           runner_profile: {
             create: {
@@ -98,6 +102,57 @@ export async function POST(req: Request) {
           }
         }
       });
+      
+      // If organization is selected, associate the user with the organization
+      if (runnerProfile.organizationId) {
+        try {
+          // Associate user with organization as a member
+          await prisma.user_organization.create({
+            data: {
+              user_id: user.id,
+              organization_id: runnerProfile.organizationId,
+              membership_role: 'Member', // Default role is Member
+              joined_at: new Date(),
+            }
+          });
+          
+          // Find default roles for this organization
+          const defaultRoles = await prisma.organization_roles.findMany({
+            where: {
+              organization_id: runnerProfile.organizationId,
+              is_default: true
+            }
+          });
+          
+          // Assign default roles if any exist
+          if (defaultRoles.length > 0) {
+            const userOrg = await prisma.user_organization.findUnique({
+              where: {
+                user_id_organization_id: {
+                  user_id: user.id,
+                  organization_id: runnerProfile.organizationId
+                }
+              }
+            });
+            
+            if (userOrg) {
+              // Create role assignments for each default role
+              for (const role of defaultRoles) {
+                await prisma.role_assignment.create({
+                  data: {
+                    member_id: userOrg.id,
+                    role_id: role.id,
+                    assigned_at: new Date(),
+                  }
+                });
+              }
+            }
+          }
+        } catch (orgError) {
+          console.error('Error associating user with organization:', orgError);
+          // Continue with user creation even if organization association fails
+        }
+      }
       
       // Don't return the password
       delete (user as any).password;
@@ -116,6 +171,7 @@ export async function POST(req: Request) {
           email: validatedData.email,
           password: hashedPassword,
           phone_number: validatedData.phoneNumber,
+          profile_picture: validatedData.profile_picture,
           role: validatedData.role,
           marshal_profile: {
             create: {
@@ -130,6 +186,57 @@ export async function POST(req: Request) {
           }
         }
       });
+      
+      // If organization is selected, associate the user with the organization
+      if (marshalProfile.organizationId) {
+        try {
+          // Associate user with organization as a member
+          await prisma.user_organization.create({
+            data: {
+              user_id: user.id,
+              organization_id: marshalProfile.organizationId,
+              membership_role: 'Member', // Default role is Member
+              joined_at: new Date(),
+            }
+          });
+          
+          // Find default roles for this organization
+          const defaultRoles = await prisma.organization_roles.findMany({
+            where: {
+              organization_id: marshalProfile.organizationId,
+              is_default: true
+            }
+          });
+          
+          // Assign default roles if any exist
+          if (defaultRoles.length > 0) {
+            const userOrg = await prisma.user_organization.findUnique({
+              where: {
+                user_id_organization_id: {
+                  user_id: user.id,
+                  organization_id: marshalProfile.organizationId
+                }
+              }
+            });
+            
+            if (userOrg) {
+              // Create role assignments for each default role
+              for (const role of defaultRoles) {
+                await prisma.role_assignment.create({
+                  data: {
+                    member_id: userOrg.id,
+                    role_id: role.id,
+                    assigned_at: new Date(),
+                  }
+                });
+              }
+            }
+          }
+        } catch (orgError) {
+          console.error('Error associating user with organization:', orgError);
+          // Continue with user creation even if organization association fails
+        }
+      }
       
       // Don't return the password
       delete (user as any).password;

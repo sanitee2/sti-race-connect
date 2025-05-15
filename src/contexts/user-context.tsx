@@ -26,6 +26,24 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+// Helper for preloading images
+const preloadImage = (src: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (!src) {
+      resolve();
+      return;
+    }
+    
+    const img = new Image();
+    img.onload = () => resolve();
+    img.onerror = () => {
+      console.warn(`Failed to preload image: ${src}`);
+      resolve(); // Resolve anyway to not block the chain
+    };
+    img.src = src;
+  });
+};
+
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: session, status } = useSession();
   const [user, setUser] = useState<User | null>(null);
@@ -51,6 +69,11 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             setUser(parsedUser);
             setIsLoading(false);
             setHasLoadedOnce(true);
+            
+            // Even with cached data, preload the profile image in the background
+            if (parsedUser.profileImage) {
+              preloadImage(parsedUser.profileImage).catch(console.error);
+            }
             return;
           } catch (e) {
             // If parsing fails, continue with API fetch
@@ -78,6 +101,11 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         // Cache the user data
         sessionStorage.setItem('cachedUserData', JSON.stringify(userData));
         
+        // Preload the profile image if available
+        if (userData.profileImage) {
+          await preloadImage(userData.profileImage);
+        }
+        
         setUser(userData);
         setIsLoading(false);
         setHasLoadedOnce(true);
@@ -95,6 +123,22 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(false);
     }
   }, [session, status, hasLoadedOnce]);
+
+  // If the user changes, preload the profile image
+  useEffect(() => {
+    if (user?.profileImage) {
+      // Store profile image in browser cache
+      preloadImage(user.profileImage).catch(console.error);
+      
+      // Cache the image URL for quicker loading
+      const cacheKey = `avatar-cache-${user.profileImage}`;
+      const isCached = localStorage.getItem(cacheKey);
+      
+      if (!isCached) {
+        localStorage.setItem(cacheKey, user.profileImage);
+      }
+    }
+  }, [user?.profileImage]);
 
   const updateUser = async (updatedUser: User) => {
     try {
@@ -116,6 +160,11 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Update cache as well
       sessionStorage.setItem('cachedUserData', JSON.stringify(updatedData));
+      
+      // If profile image changed, preload it
+      if (updatedData.profileImage !== user?.profileImage) {
+        preloadImage(updatedData.profileImage).catch(console.error);
+      }
       
       setUser(updatedData);
     } catch (err) {

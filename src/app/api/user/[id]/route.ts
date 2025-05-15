@@ -35,6 +35,7 @@ export async function PATCH(
       data: {
         name: userData.name,
         email: userData.email,
+        profile_picture: userData.profileImage,
         // Be careful with role updates - may want to restrict this to admins only
         ...(session.user.role === 'Admin' && { role: userData.role }),
         // If it's a Marshal updating their profile
@@ -93,6 +94,7 @@ export async function PATCH(
         name: true,
         email: true,
         role: true,
+        profile_picture: true,
         marshal_profile: true,
         runner_profile: true,
       },
@@ -104,6 +106,7 @@ export async function PATCH(
       name: user.name,
       email: user.email,
       role: user.role,
+      profileImage: user.profile_picture,
       // Combine marshal and runner profiles based on role
       ...(user.role === 'Marshal' && user.marshal_profile && {
         organizationName: user.marshal_profile.organization_name,
