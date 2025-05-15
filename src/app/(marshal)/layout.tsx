@@ -1,127 +1,20 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo, ReactElement } from 'react';
-import { User, LogOut, Settings, ChevronDown, Home } from 'lucide-react';
-import { CollapsibleSidebar } from '@/components/ui/collapsible-sidebar';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { MarshalSidebar } from '@/components/marshal-sidebar';
 import { Logo } from '@/components/Logo';
 import { UserProvider, useUser } from '@/contexts/user-context';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { EnhancedAvatar } from '@/components/ui/enhanced-avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { redirect, usePathname } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Button } from '@/components/ui/button';
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbList, 
-  BreadcrumbPage,
-  BreadcrumbSeparator 
-} from '@/components/ui/breadcrumb';
-
-// Breadcrumb item interface
-interface BreadcrumbItemType {
-  name: string;
-  path: string;
-  icon?: ReactElement | null;
-}
-
-// Helper function to generate breadcrumbs from pathname
-function generateBreadcrumbs(pathname: string): BreadcrumbItemType[] {
-  const paths = pathname.split('/').filter(Boolean);
-  
-  // Base structure - always start with dashboard
-  const breadcrumbs: BreadcrumbItemType[] = [
-    {
-      name: 'Dashboard',
-      path: '/dashboard',
-      icon: <Home className="h-4 w-4" />
-    }
-  ];
-  
-  // Add path segments
-  let currentPath = '/dashboard';
-  paths.forEach((segment, i) => {
-    // Skip the first segment as it's dashboard
-    if (i === 0 && (segment === 'dashboard' || segment === '')) {
-      return;
-    }
-    
-    currentPath += `/${segment}`;
-    breadcrumbs.push({
-      name: segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' '),
-      path: currentPath,
-      icon: null
-    });
-  });
-  
-  return breadcrumbs;
-}
-
-// Breadcrumb Navigation Component
-function BreadcrumbNav() {
-  const pathname = usePathname();
-  const breadcrumbs = generateBreadcrumbs(pathname);
-  
-  // For mobile, only show the current page
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const displayBreadcrumbs = !isMobile 
-    ? breadcrumbs 
-    : breadcrumbs.length > 1 
-      ? [breadcrumbs[0], breadcrumbs[breadcrumbs.length - 1]] 
-      : breadcrumbs;
-  
-  // Always show at least the dashboard breadcrumb
-  return (
-    <Breadcrumb className="text-sm">
-      <BreadcrumbList className="text-muted-foreground">
-        {displayBreadcrumbs.map((crumb, i) => {
-          // For mobile, add ellipsis when skipping items
-          const showEllipsis = isMobile && i === 1 && breadcrumbs.length > 2;
-          
-          return (
-            <React.Fragment key={i}>
-              {i > 0 && (
-                <>
-                  <BreadcrumbSeparator />
-                  {showEllipsis && (
-                    <>
-                      <BreadcrumbItem>
-                        <span className="text-xs text-muted-foreground">...</span>
-                      </BreadcrumbItem>
-                      <BreadcrumbSeparator />
-                    </>
-                  )}
-                </>
-              )}
-              <BreadcrumbItem>
-                {i < displayBreadcrumbs.length - 1 || breadcrumbs.length === 1 ? (
-                  <BreadcrumbLink 
-                    href={crumb.path} 
-                    className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {crumb.icon && crumb.icon}
-                    <span>{crumb.name}</span>
-                  </BreadcrumbLink>
-                ) : (
-                  <BreadcrumbPage className="flex items-center gap-1.5 font-medium">
-                    {crumb.icon && crumb.icon}
-                    <span className="truncate max-w-[150px] md:max-w-none">{crumb.name}</span>
-                  </BreadcrumbPage>
-                )}
-              </BreadcrumbItem>
-            </React.Fragment>
-          );
-        })}
-      </BreadcrumbList>
-    </Breadcrumb>
-  );
-}
+import MarshalBreadcrumb from '@/components/breadcrumb/marshal-breadcrumb';
 
 // Component for user profile in header
 function UserProfile() {
@@ -151,12 +44,12 @@ function UserProfile() {
         className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-muted transition-colors focus:outline-none"
         onClick={() => setDropdownOpen(!dropdownOpen)}
       >
-        <Avatar>
-          <AvatarImage src={user.profileImage} alt={user.name} />
-          <AvatarFallback className="bg-primary/10 text-primary">
-            {user.name.charAt(0)}
-          </AvatarFallback>
-        </Avatar>
+        <EnhancedAvatar
+          src={user.profileImage}
+          alt={user.name}
+          fallback={user.name.charAt(0)}
+          size="sm"
+        />
         <div className="hidden md:flex flex-col items-start text-left">
           <span className="text-sm font-medium leading-none">{user.name}</span>
           <span className="text-xs text-muted-foreground capitalize">{user.role}</span>
@@ -282,6 +175,43 @@ function UserProfile() {
 
 // Inner layout component that uses the user context
 function MarshalLayoutInner({ children }: { children: React.ReactNode }) {
+  const [sidebarWidth, setSidebarWidth] = useState(240); // Default width
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Track sidebar state and window size
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth < 768);
+      // Adjust width based on sidebar state - get actual width from sidebar element
+      const sidebarElement = document.querySelector('[data-sidebar]');
+      if (sidebarElement) {
+        setSidebarWidth(sidebarElement.clientWidth);
+      }
+    }
+    
+    // Initial check
+    handleResize();
+    
+    // Setup observer for sidebar width changes
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setSidebarWidth(entry.contentRect.width);
+      }
+    });
+    
+    const sidebarElement = document.querySelector('[data-sidebar]');
+    if (sidebarElement) {
+      observer.observe(sidebarElement);
+    }
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   // Prevent visibilitychange events from causing unnecessary re-renders
   useEffect(() => {
     function handleVisibilityChange() {
@@ -296,18 +226,33 @@ function MarshalLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <CollapsibleSidebar />
+      {/* Sidebar container - mark with data attribute for width detection */}
+      <div data-sidebar className="h-screen fixed left-0 top-0 z-20">
+        <MarshalSidebar />
+      </div>
       
-      {/* Main content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top navigation bar */}
-        <header className="h-16 border-b border-border flex items-center px-6 justify-between">
+      {/* Main content - with dynamic sidebar width offset */}
+      <div 
+        className="flex-1 flex flex-col" 
+        style={{ 
+          marginLeft: isMobile ? 0 : `${sidebarWidth}px`,
+          width: isMobile ? '100%' : `calc(100% - ${sidebarWidth}px)`,
+          position: 'relative'
+        }}
+      >
+        {/* Top navigation bar - fixed */}
+        <header 
+          className="h-16 border-b border-border flex items-center px-6 justify-between fixed bg-background z-10"
+          style={{ 
+            width: isMobile ? '100%' : `calc(100% - ${sidebarWidth}px)`,
+            right: 0
+          }}
+        >
           <div className="flex items-center gap-2 max-w-[60%]">
             <div className="md:hidden mr-2">
               <Logo />
             </div>
-            <BreadcrumbNav />
+            <MarshalBreadcrumb />
           </div>
           
           <div className="flex items-center gap-4 ml-auto">
@@ -316,8 +261,8 @@ function MarshalLayoutInner({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         
-        {/* Page content */}
-        <main className="flex-1 p-6 overflow-auto">
+        {/* Page content - scrollable with top padding for header */}
+        <main className="flex-1 p-6 pt-[80px] overflow-y-auto">
           {children}
         </main>
       </div>

@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { NextAuthProvider } from '@/providers/session-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
+import { FloatingTestButton } from "@/components/floating-test-button";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -47,7 +48,8 @@ export default function RootLayout({
       <body className={`${montserrat.variable} ${satoshi.variable} ${inter.variable} font-sans antialiased`}>
         <NextAuthProvider>
           <ThemeProvider>
-        {children}
+            {children}
+            <FloatingTestButton />
           </ThemeProvider>
         </NextAuthProvider>
       </body>

@@ -5,9 +5,10 @@ import { authOptions } from '@/lib/auth';
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params;
     // Get the session to check if user is authenticated
     const session = await getServerSession(authOptions);
 
@@ -19,7 +20,7 @@ export async function PATCH(
     }
 
     // Check if user is updating their own profile or has admin permissions
-    if (session.user.id !== params.id && session.user.role !== 'Admin') {
+    if (session.user.id !== resolvedParams.id && session.user.role !== 'Admin') {
       return NextResponse.json(
         { error: 'Forbidden: You can only update your own profile' },
         { status: 403 }
@@ -31,10 +32,11 @@ export async function PATCH(
 
     // Update the user data
     const user = await prisma.users.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: {
         name: userData.name,
         email: userData.email,
+        profile_picture: userData.profileImage,
         // Be careful with role updates - may want to restrict this to admins only
         ...(session.user.role === 'Admin' && { role: userData.role }),
         // If it's a Marshal updating their profile
@@ -93,6 +95,7 @@ export async function PATCH(
         name: true,
         email: true,
         role: true,
+        profile_picture: true,
         marshal_profile: true,
         runner_profile: true,
       },
@@ -104,6 +107,7 @@ export async function PATCH(
       name: user.name,
       email: user.email,
       role: user.role,
+      profileImage: user.profile_picture,
       // Combine marshal and runner profiles based on role
       ...(user.role === 'Marshal' && user.marshal_profile && {
         organizationName: user.marshal_profile.organization_name,

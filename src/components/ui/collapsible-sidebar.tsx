@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { User, Calendar, Award, Users, Settings, Home, ChevronLeft, ChevronRight, Menu, LogOut, ChevronDown, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Menu, LogOut, ChevronDown } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/user-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { EnhancedAvatar } from '@/components/ui/enhanced-avatar';
 import { useTheme } from '@/providers/theme-provider';
 import { toast } from 'sonner';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
@@ -46,6 +47,13 @@ const LogoIcon = ({ variant = 'default' }: { variant?: 'default' | 'white' }) =>
     />
   </svg>
 );
+
+// Navigation item type
+export interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+}
 
 interface NavLinkProps {
   href: string;
@@ -147,7 +155,10 @@ function UserProfileDropdown({ isCollapsed }: { isCollapsed: boolean }) {
           className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
           onClick={() => setDropdownOpen(false)}
         >
-          <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
           Your Profile
         </Link>
         <Link 
@@ -155,7 +166,10 @@ function UserProfileDropdown({ isCollapsed }: { isCollapsed: boolean }) {
           className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
           onClick={() => setDropdownOpen(false)}
         >
-          <Settings className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
           Settings
         </Link>
       </div>
@@ -179,12 +193,13 @@ function UserProfileDropdown({ isCollapsed }: { isCollapsed: boolean }) {
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex justify-center items-center p-2 w-full hover:bg-white/10 rounded-md transition-colors"
           >
-            <Avatar>
-              <AvatarImage src={user.profileImage} alt={user.name} />
-              <AvatarFallback className="bg-white/10 text-white">
-                {user.name.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
+            <EnhancedAvatar
+              src={user.profileImage}
+              alt={user.name}
+              fallback={user.name.charAt(0)}
+              size="sm"
+              className="bg-white/10 text-white"
+            />
           </button>
           
           {/* Dropdown for collapsed state */}
@@ -219,12 +234,13 @@ function UserProfileDropdown({ isCollapsed }: { isCollapsed: boolean }) {
           onClick={() => setDropdownOpen(!dropdownOpen)}
           className="flex items-center w-full gap-3 p-2 rounded-md hover:bg-white/10 transition-colors"
         >
-          <Avatar>
-            <AvatarImage src={user.profileImage} alt={user.name} />
-            <AvatarFallback className="bg-white/10 text-white">
-              {user.name.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
+          <EnhancedAvatar
+            src={user.profileImage}
+            alt={user.name}
+            fallback={user.name.charAt(0)}
+            size="sm"
+            className="bg-white/10 text-white"
+          />
           <div className="flex-1 text-left">
             <div className="font-medium text-white text-sm">{user.name}</div>
             <div className="text-xs text-white/70 capitalize">{user.role}</div>
@@ -257,7 +273,12 @@ function UserProfileDropdown({ isCollapsed }: { isCollapsed: boolean }) {
   );
 }
 
-export function CollapsibleSidebar() {
+interface CollapsibleSidebarProps {
+  navItems: NavItem[];
+  showUserProfile?: boolean;
+}
+
+export function CollapsibleSidebar({ navItems, showUserProfile = true }: CollapsibleSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
@@ -295,6 +316,7 @@ export function CollapsibleSidebar() {
   
   // Check if path is active - handling the route group structure
   const isActiveRoute = (route: string) => {
+    if (!pathname) return false;
     return pathname.endsWith(route);
   };
   
@@ -334,56 +356,28 @@ export function CollapsibleSidebar() {
         </div>
         
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-          <NavLink 
-            href="/dashboard" 
-            label="Dashboard" 
-            isCollapsed={isCollapsed}
-            isActive={isActiveRoute('/dashboard')} 
-          >
-            <Home className={getIconStyle(isActiveRoute('/dashboard'))} />
-          </NavLink>
-          
-          <NavLink 
-            href="/marshal-events" 
-            label="Events" 
-            isCollapsed={isCollapsed}
-            isActive={isActiveRoute('/marshal-events')} 
-          >
-            <Calendar className={getIconStyle(isActiveRoute('/marshal-events'))} />
-          </NavLink>
-          
-          <NavLink 
-            href="/participants" 
-            label="Participants" 
-            isCollapsed={isCollapsed}
-            isActive={isActiveRoute('/participants')} 
-          >
-            <Users className={getIconStyle(isActiveRoute('/participants'))} />
-          </NavLink>
-          
-          <NavLink 
-            href="/profile" 
-            label="Profile" 
-            isCollapsed={isCollapsed}
-            isActive={isActiveRoute('/profile')} 
-          >
-            <User className={getIconStyle(isActiveRoute('/profile'))} />
-          </NavLink>
-          
-          <NavLink 
-            href="/settings" 
-            label="Settings" 
-            isCollapsed={isCollapsed}
-            isActive={isActiveRoute('/settings')} 
-          >
-            <Settings className={getIconStyle(isActiveRoute('/settings'))} />
-          </NavLink>
+          {navItems.map((item, index) => (
+            <NavLink 
+              key={index}
+              href={item.href} 
+              label={item.label} 
+              isCollapsed={isCollapsed}
+              isActive={isActiveRoute(item.href)} 
+            >
+              {/* Render the icon with the appropriate style */}
+              <div className={getIconStyle(isActiveRoute(item.href))}>
+                {item.icon}
+              </div>
+            </NavLink>
+          ))}
         </nav>
         
         {/* User profile section with dropdown */}
-        <div className={cn("mt-auto pt-3 pb-3")}>
-          <UserProfileDropdown isCollapsed={isCollapsed} />
-        </div>
+        {showUserProfile && (
+          <div className={cn("mt-auto pt-3 pb-3")}>
+            <UserProfileDropdown isCollapsed={isCollapsed} />
+          </div>
+        )}
         
         {/* Collapse control */}
         {!isMobile && (

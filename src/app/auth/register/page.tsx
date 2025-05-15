@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import Link from "next/link";
-import { Zap, Flag, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Zap, Flag, AlertCircle, CheckCircle2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,12 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useRouter } from "next/navigation";
+import { OrganizationCombobox, getOrganizationById } from "@/components/organization-combobox";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface RegisterFormData {
   name: string;
   email: string;
   password: string;
   phoneNumber: string;
+  profile_picture: string;
   dateOfBirth: Date;
   gender: string;
   address: string;
@@ -25,6 +28,7 @@ interface RegisterFormData {
   emergencyContactName: string;
   emergencyContactPhone: string;
   emergencyContactRelationship: string;
+  organizationId: string;
   organizationName: string;
   rolePosition: string;
   socialMediaLinks: string;
@@ -42,14 +46,16 @@ interface StepType {
 const steps: Record<Role, StepType[]> = {
   Runner: [
     { name: "Account Information", fields: ["name", "email", "password"] },
+    { name: "Profile Picture", fields: ["profile_picture"] },
     { name: "Personal Details", fields: ["phoneNumber", "dateOfBirth", "gender", "address"] },
-    { name: "Runner Information", fields: ["tshirtSize"] },
+    { name: "Runner Information", fields: ["tshirtSize", "organizationId"] },
     { name: "Emergency Contact", fields: ["emergencyContactName", "emergencyContactPhone", "emergencyContactRelationship"] },
   ],
   Marshal: [
     { name: "Account Information", fields: ["name", "email", "password"] },
+    { name: "Profile Picture", fields: ["profile_picture"] },
     { name: "Personal Details", fields: ["phoneNumber", "dateOfBirth", "gender", "address"] },
-    { name: "Professional Details", fields: ["organizationName", "rolePosition", "socialMediaLinks", "responsibilities"] },
+    { name: "Professional Details", fields: ["organizationId"] },
   ]
 };
 
@@ -91,6 +97,11 @@ export default function RegisterPage() {
         if (!value) return 'Date of birth is required';
         return true;
       }
+    });
+    
+    // Register profile picture field (optional)
+    register('profile_picture', { 
+      required: false
     });
     
     // Register other select fields as required
@@ -157,8 +168,12 @@ export default function RegisterPage() {
 
     console.log('Validating fields:', fieldsToCheck);
     
+    // Exclude optional fields
+    const optionalFields = ['organizationId', 'socialMediaLinks'];
+    const requiredFields = fieldsToCheck.filter(field => !optionalFields.includes(field));
+    
     // Make sure all required fields are registered properly
-    fieldsToCheck.forEach(field => {
+    requiredFields.forEach(field => {
       // Special handling for select fields like gender and tshirtSize
       if (field === 'gender' || field === 'tshirtSize') {
         const value = getValues(field as any);
@@ -171,7 +186,7 @@ export default function RegisterPage() {
     });
     
     // Trigger validation for these fields
-    const result = await trigger(fieldsToCheck as any[]);
+    const result = await trigger(requiredFields as any[]);
     console.log('Validation result:', result);
     
     // If validation failed, log which fields have errors
@@ -200,72 +215,88 @@ export default function RegisterPage() {
       setIsSubmitting(true);
       setRegistrationError(null);
       
-      console.log('Form data to be submitted:', data);
+      console.log('Form data:', data);
       
-      // Prepare the user data
-      const userData = {
+      // For Marshals, set default values for required fields not in the form
+      if (selectedRole === 'Marshal') {
+        // Set default values for organization-related fields that are no longer in the form but required by the API
+        data.organizationName = "External Organization";
+        data.rolePosition = "Member";
+        data.responsibilities = "General marshal duties";
+        
+        // If an organization ID was provided, try to fetch the name
+        if (data.organizationId) {
+          try {
+            const org = await getOrganizationById(data.organizationId);
+            if (org?.name) {
+              data.organizationName = org.name;
+            }
+          } catch (error) {
+            console.error("Error fetching organization name:", error);
+          }
+        }
+      }
+      
+      // Format registration data for API
+      const registrationData = {
         name: data.name,
         email: data.email,
         password: data.password,
         phoneNumber: data.phoneNumber || null,
+        profile_picture: data.profile_picture || null,
         role: selectedRole,
         profile: {
           dateOfBirth: data.dateOfBirth,
           gender: data.gender,
           address: data.address,
-          // Additional fields based on role
-          ...(selectedRole === "Runner" 
+          ...(selectedRole === 'Runner' 
             ? {
+                organizationId: data.organizationId || undefined,
                 tshirtSize: data.tshirtSize,
                 emergencyContactName: data.emergencyContactName,
                 emergencyContactPhone: data.emergencyContactPhone,
                 emergencyContactRelationship: data.emergencyContactRelationship
               } 
             : {
+                organizationId: data.organizationId || undefined,
                 organizationName: data.organizationName,
                 rolePosition: data.rolePosition,
-                socialMediaLinks: data.socialMediaLinks || null,
+                socialMediaLinks: null,
                 responsibilities: data.responsibilities
               }
           )
         }
       };
       
-      console.log('Transformed data for API:', userData);
-      
-      try {
-      // Submit the data to the API
+      // Send data to API
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(userData),
+        body: JSON.stringify(registrationData),
       });
       
-      console.log('API response status:', response.status);
       const responseData = await response.json();
-      console.log('API response data:', responseData);
       
+      // Check if registration was successful
       if (!response.ok) {
         throw new Error(responseData.message || 'Registration failed');
       }
       
-      // Handle successful registration
+      // Registration successful
+      console.log('Registration successful:', responseData);
       setRegistrationSuccess(true);
       
       // Redirect to login page after successful registration
       setTimeout(() => {
         router.push('/auth/login');
       }, 2000);
-      } catch (fetchError) {
-        console.error('Fetch error:', fetchError);
-        throw new Error(fetchError instanceof Error ? fetchError.message : 'Network error occurred');
-      }
+      
     } catch (error) {
       console.error('Registration error:', error);
       setRegistrationError(
-        error instanceof Error ? error.message : 'Failed to register. Please try again.'
+        error instanceof Error ? error.message : 'Registration failed. Please try again.'
       );
     } finally {
       setIsSubmitting(false);
@@ -807,13 +838,77 @@ export default function RegisterPage() {
             )}
           </div>
         );
+      
+      case "organizationId":
+        return (
+          <div key={fieldName} className="space-y-2 relative">
+            <Label htmlFor={fieldName}>Organization (Optional)</Label>
+            <div className="relative">
+              <OrganizationCombobox
+                value={watch('organizationId') || ''}
+                onChange={(value) => {
+                  setValue('organizationId', value, { 
+                    shouldValidate: true, 
+                    shouldDirty: true 
+                  });
+                  
+                  // If organization is selected, pre-fill organization name for marshals
+                  if (selectedRole === 'Marshal' && value) {
+                    getOrganizationById(value)
+                      .then(org => {
+                        if (org?.name) {
+                          setValue('organizationName', org.name, { 
+                            shouldValidate: true, 
+                            shouldDirty: true 
+                          });
+                        }
+                      })
+                      .catch(error => {
+                        console.error("Error fetching organization details:", error);
+                      });
+                  }
+                }}
+                className={isFieldValid(fieldName) ? "border-green-500" : ""}
+              />
+            </div>
+            {watch('organizationId') && (
+              <p className="text-xs text-muted-foreground mt-1 flex items-center">
+                <CheckCircle2 className="h-3 w-3 mr-1 text-primary" />
+                You'll be assigned as a Member upon approval. Additional roles can be assigned later.
+              </p>
+            )}
+          </div>
+        );
+      
+      case "profile_picture":
+        return (
+          <div key={fieldName} className="space-y-4 relative">
+            <div className="relative flex flex-col items-center">
+              <ImageUpload 
+                variant="profile"
+                onChange={(value) => {
+                  setValue('profile_picture', value as string, { 
+                    shouldValidate: true,
+                    shouldDirty: true,
+                    shouldTouch: true 
+                  });
+                }}
+                folder="profile-picture"
+                useCloud={true}
+              />
+              <p className="text-sm text-muted-foreground mt-4">
+                Upload a profile picture to personalize your account (optional)
+              </p>
+            </div>
+          </div>
+        );
         
       default:
         return null;
     }
   };
 
-  // Add helper function for password strength
+  // Add helper function for password
   const getPasswordStrength = (password: string): number => {
     let strength = 0;
     
