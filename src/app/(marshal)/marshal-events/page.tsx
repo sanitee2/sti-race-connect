@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, MapPin, Users, Search, Plus, Filter, ChevronDown, Eye, Edit, Trash2, UserPlus, Award, Check, X } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, Search, Plus, Filter, ChevronDown, Eye, Edit, Trash2, UserPlus, Award, Check, X, Images, Flag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,8 @@ import {
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "sonner";
 import { TimePicker } from "@/components/ui/time-picker";
+import { ImageUpload } from "@/components/ui/image-upload";
+import Image from "next/image";
 
 // Define types for our data
 interface EventCategory {
@@ -33,6 +35,7 @@ interface EventCategory {
   description: string;
   targetAudience: string;
   participants: number;
+  image?: string; // Category image URL
 }
 
 interface Event {
@@ -47,6 +50,8 @@ interface Event {
   created_by: string;
   participants?: number;
   categories?: EventCategory[];
+  cover_image?: string; // Event cover/featured image URL
+  gallery_images?: string[]; // Event gallery images URLs
 }
 
 interface EventFormData {
@@ -56,12 +61,15 @@ interface EventFormData {
   time: Date | undefined;
   location: string;
   target_audience: string;
+  cover_image?: string; // Featured image for the event
+  gallery_images?: string[]; // Gallery images for the event
 }
 
 interface CategoryFormData {
   name: string;
   description: string;
   targetAudience: string;
+  image?: string; // Category image
 }
 
 export default function EventsPage() {
@@ -87,13 +95,16 @@ export default function EventsPage() {
     date: undefined,
     time: undefined,
     location: "",
-    target_audience: ""
+    target_audience: "",
+    cover_image: "",
+    gallery_images: []
   });
 
   const [categoryFormData, setCategoryFormData] = useState<CategoryFormData>({
     name: "",
     description: "",
-    targetAudience: ""
+    targetAudience: "",
+    image: ""
   });
 
   const [editingCategory, setEditingCategory] = useState<EventCategory | null>(null);
@@ -134,6 +145,8 @@ export default function EventsPage() {
         time: eventData.time ? format(eventData.time, 'HH:mm') : '',
         location: eventData.location,
         target_audience: eventData.target_audience,
+        cover_image: eventData.cover_image,
+        gallery_images: eventData.gallery_images,
       }),
     });
 
@@ -158,6 +171,8 @@ export default function EventsPage() {
         time: eventData.time ? format(eventData.time, 'HH:mm') : '',
         location: eventData.location,
         target_audience: eventData.target_audience,
+        cover_image: eventData.cover_image,
+        gallery_images: eventData.gallery_images,
       }),
     });
 
@@ -192,6 +207,7 @@ export default function EventsPage() {
         name: categoryData.name,
         description: categoryData.description,
         targetAudience: categoryData.targetAudience,
+        image: categoryData.image,
       }),
     });
 
@@ -213,6 +229,7 @@ export default function EventsPage() {
         name: categoryData.name,
         description: categoryData.description,
         targetAudience: categoryData.targetAudience,
+        image: categoryData.image,
       }),
     });
 
@@ -474,7 +491,9 @@ export default function EventsPage() {
       date: undefined,
       time: undefined,
       location: "",
-      target_audience: ""
+      target_audience: "",
+      cover_image: "",
+      gallery_images: []
     });
   };
 
@@ -482,7 +501,8 @@ export default function EventsPage() {
     setCategoryFormData({
       name: "",
       description: "",
-      targetAudience: ""
+      targetAudience: "",
+      image: ""
     });
   };
 
@@ -506,7 +526,9 @@ export default function EventsPage() {
       date: new Date(event.date),
       time: timeDate,
       location: event.location,
-      target_audience: event.target_audience
+      target_audience: event.target_audience,
+      cover_image: event.cover_image || "",
+      gallery_images: event.gallery_images || []
     });
     setSelectedEvent(event);
     setIsEditEventOpen(true);
@@ -533,7 +555,8 @@ export default function EventsPage() {
     setCategoryFormData({
       name: category.name,
       description: category.description,
-      targetAudience: category.targetAudience
+      targetAudience: category.targetAudience,
+      image: category.image || ""
     });
     setEditingCategory(category);
   };
@@ -658,89 +681,133 @@ export default function EventsPage() {
 
       {/* Create Event Dialog */}
       <Dialog open={isCreateEventOpen} onOpenChange={setIsCreateEventOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Create New Event</DialogTitle>
             <DialogDescription>
               Enter the details for the new race event.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="event-name" className="text-right">
-                Event Name *
-              </Label>
-              <Input 
-                id="event-name" 
-                placeholder="Enter event name" 
-                className="col-span-3"
-                value={eventFormData.name}
-                onChange={(e) => setEventFormData(prev => ({ ...prev, name: e.target.value }))}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="event-date" className="text-right">
-                Event Date *
-              </Label>
-              <div className="col-span-3">
-                <DatePicker 
-                  date={eventFormData.date}
-                  onSelect={(date) => setEventFormData(prev => ({ ...prev, date }))}
+          <div className="flex-1 overflow-y-auto px-1">
+            <div className="grid gap-4 py-4">
+              {/* Basic Information - 2 columns */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="event-name">
+                    Event Name *
+                  </Label>
+                  <Input 
+                    id="event-name" 
+                    placeholder="Enter event name" 
+                    value={eventFormData.name}
+                    onChange={(e) => setEventFormData(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="location">
+                    Location *
+                  </Label>
+                  <Input 
+                    id="location" 
+                    placeholder="Enter event location" 
+                    value={eventFormData.location}
+                    onChange={(e) => setEventFormData(prev => ({ ...prev, location: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Date and Time - 2 columns */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="event-date">
+                    Event Date *
+                  </Label>
+                  <DatePicker 
+                    date={eventFormData.date}
+                    onSelect={(date) => setEventFormData(prev => ({ ...prev, date }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="event-time">
+                    Event Time *
+                  </Label>
+                  <TimePicker
+                    date={eventFormData.time}
+                    onChange={(time) => setEventFormData(prev => ({ ...prev, time }))}
+                    hourCycle={12}
+                    placeholder="Select time"
+                  />
+                </div>
+              </div>
+
+              {/* Target Audience */}
+              <div className="space-y-2">
+                <Label htmlFor="target-audience">
+                  Target Audience
+                </Label>
+                <Input 
+                  id="target-audience" 
+                  placeholder="e.g., All ages, Professionals" 
+                  value={eventFormData.target_audience}
+                  onChange={(e) => setEventFormData(prev => ({ ...prev, target_audience: e.target.value }))}
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="event-time" className="text-right">
-                Event Time *
-              </Label>
-              <div className="col-span-3">
-                <TimePicker
-                  date={eventFormData.time}
-                  onChange={(time) => setEventFormData(prev => ({ ...prev, time }))}
-                  hourCycle={12}
-                  placeholder="Select time"
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">
+                  Description
+                </Label>
+                <Textarea
+                  id="description"
+                  placeholder="Provide a description of the event"
+                  rows={3}
+                  value={eventFormData.description}
+                  onChange={(e) => setEventFormData(prev => ({ ...prev, description: e.target.value }))}
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="location" className="text-right">
-                Location *
-              </Label>
-              <Input 
-                id="location" 
-                placeholder="Enter event location" 
-                className="col-span-3"
-                value={eventFormData.location}
-                onChange={(e) => setEventFormData(prev => ({ ...prev, location: e.target.value }))}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="target-audience" className="text-right">
-                Target Audience
-              </Label>
-              <Input 
-                id="target-audience" 
-                placeholder="e.g., All ages, Professionals" 
-                className="col-span-3"
-                value={eventFormData.target_audience}
-                onChange={(e) => setEventFormData(prev => ({ ...prev, target_audience: e.target.value }))}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                className="col-span-3"
-                placeholder="Provide a description of the event"
-                rows={3}
-                value={eventFormData.description}
-                onChange={(e) => setEventFormData(prev => ({ ...prev, description: e.target.value }))}
-              />
+              
+              {/* Featured Image Upload - Smaller */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Featured Image
+                </Label>
+                <div className="w-full">
+                  <ImageUpload 
+                    variant="featured"
+                    onChange={(value) => setEventFormData(prev => ({ ...prev, cover_image: value as string }))}
+                    images={eventFormData.cover_image ? [eventFormData.cover_image] : []}
+                    useCloud={true}
+                    folder="event-covers"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Upload a featured image for the event (optional)
+                  </p>
+                </div>
+              </div>
+              
+              {/* Gallery Images Upload - Compact */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Gallery Images
+                </Label>
+                <div className="w-full">
+                  <ImageUpload 
+                    variant="gallery"
+                    onChange={(value) => setEventFormData(prev => ({ ...prev, gallery_images: value as string[] }))}
+                    images={eventFormData.gallery_images || []}
+                    maxImages={6}
+                    useCloud={true}
+                    folder="event-gallery"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Upload gallery images for the event (optional, max 6 images)
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="border-t pt-4">
             <Button variant="outline" onClick={() => setIsCreateEventOpen(false)}>
               Cancel
             </Button>
@@ -753,89 +820,133 @@ export default function EventsPage() {
 
       {/* Edit Event Dialog */}
       <Dialog open={isEditEventOpen} onOpenChange={setIsEditEventOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Edit Event</DialogTitle>
             <DialogDescription>
               Update the details for this event.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-event-name" className="text-right">
-                Event Name *
-              </Label>
-              <Input 
-                id="edit-event-name" 
-                placeholder="Enter event name" 
-                className="col-span-3"
-                value={eventFormData.name}
-                onChange={(e) => setEventFormData(prev => ({ ...prev, name: e.target.value }))}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-event-date" className="text-right">
-                Event Date *
-              </Label>
-              <div className="col-span-3">
-                <DatePicker 
-                  date={eventFormData.date}
-                  onSelect={(date) => setEventFormData(prev => ({ ...prev, date }))}
+          <div className="flex-1 overflow-y-auto px-1">
+            <div className="grid gap-4 py-4">
+              {/* Basic Information - 2 columns */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-event-name">
+                    Event Name *
+                  </Label>
+                  <Input 
+                    id="edit-event-name" 
+                    placeholder="Enter event name" 
+                    value={eventFormData.name}
+                    onChange={(e) => setEventFormData(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-location">
+                    Location *
+                  </Label>
+                  <Input 
+                    id="edit-location" 
+                    placeholder="Enter event location" 
+                    value={eventFormData.location}
+                    onChange={(e) => setEventFormData(prev => ({ ...prev, location: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Date and Time - 2 columns */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-event-date">
+                    Event Date *
+                  </Label>
+                  <DatePicker 
+                    date={eventFormData.date}
+                    onSelect={(date) => setEventFormData(prev => ({ ...prev, date }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-event-time">
+                    Event Time *
+                  </Label>
+                  <TimePicker
+                    date={eventFormData.time}
+                    onChange={(time) => setEventFormData(prev => ({ ...prev, time }))}
+                    hourCycle={12}
+                    placeholder="Select time"
+                  />
+                </div>
+              </div>
+
+              {/* Target Audience */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-target-audience">
+                  Target Audience
+                </Label>
+                <Input 
+                  id="edit-target-audience" 
+                  placeholder="e.g., All ages, Professionals" 
+                  value={eventFormData.target_audience}
+                  onChange={(e) => setEventFormData(prev => ({ ...prev, target_audience: e.target.value }))}
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-event-time" className="text-right">
-                Event Time *
-              </Label>
-              <div className="col-span-3">
-                <TimePicker
-                  date={eventFormData.time}
-                  onChange={(time) => setEventFormData(prev => ({ ...prev, time }))}
-                  hourCycle={12}
-                  placeholder="Select time"
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">
+                  Description
+                </Label>
+                <Textarea
+                  id="edit-description"
+                  placeholder="Provide a description of the event"
+                  rows={3}
+                  value={eventFormData.description}
+                  onChange={(e) => setEventFormData(prev => ({ ...prev, description: e.target.value }))}
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-location" className="text-right">
-                Location *
-              </Label>
-              <Input 
-                id="edit-location" 
-                placeholder="Enter event location" 
-                className="col-span-3"
-                value={eventFormData.location}
-                onChange={(e) => setEventFormData(prev => ({ ...prev, location: e.target.value }))}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-target-audience" className="text-right">
-                Target Audience
-              </Label>
-              <Input 
-                id="edit-target-audience" 
-                placeholder="e.g., All ages, Professionals" 
-                className="col-span-3"
-                value={eventFormData.target_audience}
-                onChange={(e) => setEventFormData(prev => ({ ...prev, target_audience: e.target.value }))}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-description" className="text-right">
-                Description
-              </Label>
-              <Textarea
-                id="edit-description"
-                className="col-span-3"
-                placeholder="Provide a description of the event"
-                rows={3}
-                value={eventFormData.description}
-                onChange={(e) => setEventFormData(prev => ({ ...prev, description: e.target.value }))}
-              />
+              
+              {/* Featured Image Upload - Smaller */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Featured Image
+                </Label>
+                <div className="w-full">
+                  <ImageUpload 
+                    variant="featured"
+                    onChange={(value) => setEventFormData(prev => ({ ...prev, cover_image: value as string }))}
+                    images={eventFormData.cover_image ? [eventFormData.cover_image] : []}
+                    useCloud={true}
+                    folder="event-covers"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Upload a featured image for the event (optional)
+                  </p>
+                </div>
+              </div>
+              
+              {/* Gallery Images Upload - Compact */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Gallery Images
+                </Label>
+                <div className="w-full">
+                  <ImageUpload 
+                    variant="gallery"
+                    onChange={(value) => setEventFormData(prev => ({ ...prev, gallery_images: value as string[] }))}
+                    images={eventFormData.gallery_images || []}
+                    maxImages={6}
+                    useCloud={true}
+                    folder="event-gallery"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Upload gallery images for the event (optional, max 6 images)
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="border-t pt-4">
             <Button variant="outline" onClick={() => setIsEditEventOpen(false)}>
               Cancel
             </Button>
@@ -869,6 +980,43 @@ export default function EventsPage() {
           </DialogHeader>
           {selectedEvent && (
             <div className="space-y-4 py-4">
+              {/* Featured Image */}
+              {selectedEvent.cover_image && (
+                <div>
+                  <Label className="text-sm font-medium">Featured Image</Label>
+                  <div className="mt-2 relative h-48 w-full rounded-md overflow-hidden">
+                    <Image
+                      src={selectedEvent.cover_image}
+                      alt={selectedEvent.name}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 600px) 100vw, 600px"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Gallery Images */}
+              {selectedEvent.gallery_images && selectedEvent.gallery_images.length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium">Gallery Images ({selectedEvent.gallery_images.length})</Label>
+                  <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {selectedEvent.gallery_images.map((imageUrl, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-md overflow-hidden">
+                        <Image
+                          src={imageUrl}
+                          alt={`Gallery image ${idx + 1}`}
+                          fill
+                          className="object-cover hover:scale-105 transition-transform cursor-pointer"
+                          sizes="(max-width: 768px) 50vw, 200px"
+                          onClick={() => window.open(imageUrl, '_blank')}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium">Date</Label>
@@ -943,6 +1091,7 @@ export default function EventsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Image</TableHead>
                       <TableHead>Category Name</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead>Target Audience</TableHead>
@@ -954,6 +1103,23 @@ export default function EventsPage() {
                     {selectedEvent.categories && selectedEvent.categories.length > 0 ? (
                       selectedEvent.categories.map((category) => (
                         <TableRow key={category.id}>
+                          <TableCell>
+                            {category.image ? (
+                              <div className="relative w-12 h-12 rounded-md overflow-hidden">
+                                <Image
+                                  src={category.image}
+                                  alt={category.name}
+                                  fill
+                                  className="object-cover"
+                                  sizes="48px"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center">
+                                <Flag className="w-5 h-5 text-muted-foreground" />
+                              </div>
+                            )}
+                          </TableCell>
                           <TableCell className="font-medium">{category.name}</TableCell>
                           <TableCell>{category.description}</TableCell>
                           <TableCell>{category.targetAudience}</TableCell>
@@ -980,7 +1146,7 @@ export default function EventsPage() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">
+                        <TableCell colSpan={6} className="h-24 text-center">
                           No categories added to this event yet.
                         </TableCell>
                       </TableRow>
@@ -1030,6 +1196,27 @@ export default function EventsPage() {
                       onChange={(e) => setCategoryFormData(prev => ({ ...prev, targetAudience: e.target.value }))}
                     />
                   </div>
+                  
+                  {/* Category Image Upload */}
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label className="text-right mt-2">
+                      Category Image
+                    </Label>
+                    <div className="col-span-3">
+                      <ImageUpload 
+                        key={editingCategory ? `edit-${editingCategory.id}` : 'add-new'}
+                        variant="featured"
+                        onChange={(value) => setCategoryFormData(prev => ({ ...prev, image: value as string }))}
+                        images={categoryFormData.image ? [categoryFormData.image] : []}
+                        useCloud={true}
+                        folder="category-images"
+                      />
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Upload an image for this category (optional)
+                      </p>
+                    </div>
+                  </div>
+                  
                   <div className="flex justify-end gap-2">
                     {editingCategory && (
                       <Button 
@@ -1225,104 +1412,200 @@ function EventCard({
   onManageStaff: (event: Event) => void
 }) {
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{event.name}</CardTitle>
+    <Card className="group relative overflow-hidden rounded-2xl border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white dark:bg-gray-900 p-0">
+      {/* Background Image */}
+      <div className="relative h-64 overflow-hidden">
+        {event.cover_image ? (
+          <Image
+            src={event.cover_image}
+            alt={event.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+            <Calendar className="w-16 h-16 text-primary/40" />
+          </div>
+        )}
+        
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+        
+        {/* Featured Badge */}
+        <div className="absolute top-4 left-4">
+          <div className="bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-1">
+            <div className="w-2 h-2 bg-white rounded-full"></div>
+            Featured
+          </div>
+        </div>
+        
+        {/* Category Badges */}
+        {event.categories && event.categories.length > 0 && (
+          <div className="absolute top-4 right-4 flex gap-2">
+            {event.categories.slice(0, 3).map((category, idx) => (
+              <div key={idx} className="bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-1">
+                <Flag className="w-3 h-3" />
+                {category.name}
+              </div>
+            ))}
+            {event.categories.length > 3 && (
+              <div className="bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-semibold">
+                +{event.categories.length - 3}
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Gallery indicator */}
+        {event.gallery_images && event.gallery_images.length > 0 && (
+          <div className="absolute bottom-4 right-4 bg-black/50 text-white px-2 py-1 rounded-lg text-xs flex items-center gap-1">
+            <Images className="h-3 w-3" />
+            <span>{event.gallery_images.length}</span>
+          </div>
+        )}
+        
+        {/* Date and Location */}
+        <div className="absolute bottom-4 left-4 text-white">
+          <div className="flex items-center gap-4 mb-2">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span className="text-sm font-medium">{event.date}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              <span className="text-sm font-medium">{event.location}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Content */}
+      <div className="p-6">
+        {/* Event Title and Status */}
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors">
+              {event.name}
+            </h3>
+            <p className="text-primary text-sm font-semibold uppercase tracking-wide">
+              {event.created_by}
+            </p>
+          </div>
           <StatusBadge status={event.status} />
         </div>
-        <CardDescription>{event.description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          <div className="flex items-center text-sm">
-            <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-            <span>{event.date}</span>
-          </div>
-          <div className="flex items-center text-sm">
-            <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+        
+        {/* Description */}
+        {event.description && (
+          <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">
+            {event.description}
+          </p>
+        )}
+        
+        {/* Event Details */}
+        <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <div className="flex items-center gap-1">
+            <Clock className="w-4 h-4" />
             <span>{event.time}</span>
           </div>
-          <div className="flex items-center text-sm">
-            <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-            <span>{event.location}</span>
-          </div>
-          <div className="flex items-center text-sm">
-            <Users className="mr-2 h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-1">
+            <Users className="w-4 h-4" />
             <span>{event.participants || 0} Participants</span>
           </div>
-          {event.categories && event.categories.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-3">
-              {event.categories.map((category, idx) => (
-                <Badge key={idx} variant="outline" className="text-xs">
-                  {category.name}
-                </Badge>
-              ))}
-            </div>
-          )}
         </div>
-      </CardContent>
-      <CardFooter className="flex justify-between pt-0">
-        <Button variant="ghost" size="sm" className="flex gap-1 items-center" onClick={() => onViewDetails(event)}>
-          <Eye size={14} /> Details
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              Actions <ChevronDown size={14} className="ml-1" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem className="flex gap-2 items-center" onClick={() => onEditEvent(event)}>
-              <Edit size={14} /> Edit Event
-            </DropdownMenuItem>
-            <DropdownMenuItem className="flex gap-2 items-center" onClick={() => onManageStaff(event)}>
-              <UserPlus size={14} /> Manage Staff
-            </DropdownMenuItem>
-            <DropdownMenuItem className="flex gap-2 items-center" onClick={() => onManageCategories(event)}>
-              <Award size={14} /> Manage Categories
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="flex gap-2 items-center text-destructive" onClick={() => onDeleteEvent(event)}>
-              <Trash2 size={14} /> Delete Event
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </CardFooter>
+        
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-primary hover:text-primary hover:bg-primary/10 font-medium"
+            onClick={() => onViewDetails(event)}
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            Details
+          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="border-primary text-primary hover:bg-primary hover:text-white transition-colors"
+              >
+                Actions
+                <ChevronDown className="w-4 h-4 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem 
+                className="flex gap-2 items-center cursor-pointer" 
+                onClick={() => onEditEvent(event)}
+              >
+                <Edit size={14} /> 
+                Edit Event
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="flex gap-2 items-center cursor-pointer" 
+                onClick={() => onManageStaff(event)}
+              >
+                <UserPlus size={14} /> 
+                Manage Staff
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="flex gap-2 items-center cursor-pointer" 
+                onClick={() => onManageCategories(event)}
+              >
+                <Award size={14} /> 
+                Manage Categories
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="flex gap-2 items-center text-destructive cursor-pointer" 
+                onClick={() => onDeleteEvent(event)}
+              >
+                <Trash2 size={14} /> 
+                Delete Event
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
     </Card>
   );
 }
 
 // Status Badge Component
 function StatusBadge({ status }: { status: string }) {
-  let variant: "outline" | "secondary" | "default" | "destructive" = "outline";
+  let badgeClass = "";
   let icon = null;
 
   switch (status.toLowerCase()) {
     case "upcoming":
-      variant = "secondary";
-      icon = <Calendar className="mr-1 h-3 w-3" />;
+      badgeClass = "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800";
+      icon = <Calendar className="w-3 h-3" />;
       break;
     case "active":
-      variant = "default";
-      icon = <Check className="mr-1 h-3 w-3" />;
+      badgeClass = "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800";
+      icon = <Check className="w-3 h-3" />;
       break;
     case "completed":
-      variant = "outline";
-      icon = <Check className="mr-1 h-3 w-3" />;
+      badgeClass = "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800";
+      icon = <Check className="w-3 h-3" />;
       break;
     case "cancelled":
-      variant = "destructive";
-      icon = <X className="mr-1 h-3 w-3" />;
+      badgeClass = "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800";
+      icon = <X className="w-3 h-3" />;
       break;
     default:
+      badgeClass = "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800";
       break;
   }
 
   return (
-    <Badge variant={variant} className="flex items-center gap-1">
+    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${badgeClass}`}>
       {icon}
-      {status}
-    </Badge>
+      <span className="capitalize">{status}</span>
+    </div>
   );
 } 

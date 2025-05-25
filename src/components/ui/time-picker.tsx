@@ -300,7 +300,7 @@ const TimePickerInput = React.forwardRef<HTMLInputElement, TimePickerInputProps>
         id={id || picker}
         name={name || picker}
         className={cn(
-          "w-[48px] text-center font-mono text-sm tabular-nums focus:bg-accent focus:text-accent-foreground [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+          "w-[48px] text-center font-mono text-sm tabular-nums focus:bg-white dark:focus:bg-gray-800 focus:text-foreground dark:focus:text-white [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
           className
         )}
         value={displayValue}

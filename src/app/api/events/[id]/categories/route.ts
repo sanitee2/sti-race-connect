@@ -19,7 +19,7 @@ export async function POST(
 
     const { id: eventId } = await params;
     const body = await request.json();
-    const { name, description, targetAudience } = body;
+    const { name, description, targetAudience, image } = body;
 
     // Validate required fields
     if (!name) {
@@ -58,6 +58,7 @@ export async function POST(
         category_name: name,
         description: description || '',
         target_audience: targetAudience || '',
+        category_image: image || null,
         created_by: session.user.id,
       },
     });
@@ -77,6 +78,7 @@ export async function POST(
       description: category.description,
       targetAudience: category.target_audience,
       participants: 0,
+      image: category.category_image,
     };
 
     return NextResponse.json(transformedCategory, { status: 201 });
@@ -129,6 +131,7 @@ export async function GET(
       description: eventCategory.category.description,
       targetAudience: eventCategory.category.target_audience,
       participants: eventCategory.category.participants.length,
+      image: eventCategory.category.category_image,
     }));
 
     return NextResponse.json(transformedCategories);

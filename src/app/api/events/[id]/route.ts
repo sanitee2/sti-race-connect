@@ -76,6 +76,7 @@ export async function GET(
         description: eventCategory.category.description,
         targetAudience: eventCategory.category.target_audience,
         participants: eventCategory.category.participants.length,
+        image: eventCategory.category.category_image,
       })),
       cover_image: event.cover_image,
       gallery_images: event.gallery_images,
@@ -114,6 +115,8 @@ export async function PUT(
       time,
       location,
       target_audience,
+      cover_image,
+      gallery_images,
     } = body;
 
     // Check if event exists and user has permission to edit
@@ -172,6 +175,8 @@ export async function PUT(
         event_date: eventDateTime,
         location,
         target_audience: target_audience || '',
+        cover_image: cover_image || null,
+        gallery_images: gallery_images || [],
       },
       include: {
         creator: {
@@ -218,6 +223,7 @@ export async function PUT(
         description: eventCategory.category.description,
         targetAudience: eventCategory.category.target_audience,
         participants: eventCategory.category.participants.length,
+        image: eventCategory.category.category_image,
       })),
       cover_image: updatedEvent.cover_image,
       gallery_images: updatedEvent.gallery_images,

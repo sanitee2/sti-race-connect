@@ -19,7 +19,7 @@ export async function PUT(
 
     const { id: eventId, categoryId } = await params;
     const body = await request.json();
-    const { name, description, targetAudience } = body;
+    const { name, description, targetAudience, image } = body;
 
     // Validate required fields
     if (!name) {
@@ -76,6 +76,7 @@ export async function PUT(
         category_name: name,
         description: description || '',
         target_audience: targetAudience || '',
+        category_image: image || null,
       },
       include: {
         participants: true,
@@ -88,6 +89,7 @@ export async function PUT(
       name: updatedCategory.category_name,
       description: updatedCategory.description,
       targetAudience: updatedCategory.target_audience,
+      image: updatedCategory.category_image,
       participants: updatedCategory.participants.length,
     };
 

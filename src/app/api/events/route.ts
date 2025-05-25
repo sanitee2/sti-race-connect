@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
         description: eventCategory.category.description,
         targetAudience: eventCategory.category.target_audience,
         participants: eventCategory.category.participants.length,
+        image: eventCategory.category.category_image,
       })),
       cover_image: event.cover_image,
       gallery_images: event.gallery_images,
@@ -100,6 +101,8 @@ export async function POST(request: NextRequest) {
       time,
       location,
       target_audience,
+      cover_image,
+      gallery_images,
     } = body;
 
     // Validate required fields
@@ -136,6 +139,8 @@ export async function POST(request: NextRequest) {
         location,
         target_audience: target_audience || '',
         created_by: session.user.id,
+        cover_image: cover_image || null,
+        gallery_images: gallery_images || [],
       },
       include: {
         creator: {
