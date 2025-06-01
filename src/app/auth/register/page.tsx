@@ -215,26 +215,36 @@ export default function RegisterPage() {
       setIsSubmitting(true);
       setRegistrationError(null);
       
-      console.log('Form data:', data);
+      console.log('Form data before API submission:', data);
+      console.log('Selected role:', selectedRole);
       
-      // For Marshals, set default values for required fields not in the form
-      if (selectedRole === 'Marshal') {
-        // Set default values for organization-related fields that are no longer in the form but required by the API
-        data.organizationName = "External Organization";
-        data.rolePosition = "Member";
-        data.responsibilities = "General marshal duties";
-        
-        // If an organization ID was provided, try to fetch the name
-        if (data.organizationId) {
-          try {
-            const org = await getOrganizationById(data.organizationId);
-            if (org?.name) {
-              data.organizationName = org.name;
-            }
-          } catch (error) {
-            console.error("Error fetching organization name:", error);
-          }
-        }
+      // Validate required fields based on role
+      const requiredFields = [
+        'name',
+        'email',
+        'password',
+        'phoneNumber',
+        'dateOfBirth',
+        'gender',
+        'address',
+        ...(selectedRole === 'Runner' 
+          ? [
+              'tshirtSize',
+              'emergencyContactName',
+              'emergencyContactPhone',
+              'emergencyContactRelationship'
+            ]
+          : [
+              'organizationName',
+              'rolePosition',
+              'responsibilities'
+            ]
+        )
+      ];
+      
+      const missingFields = requiredFields.filter(field => !data[field as keyof RegisterFormData]);
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
       }
       
       // Format registration data for API
@@ -268,6 +278,8 @@ export default function RegisterPage() {
         }
       };
       
+      console.log('Registration data being sent to API:', registrationData);
+      
       // Send data to API
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -278,9 +290,14 @@ export default function RegisterPage() {
       });
       
       const responseData = await response.json();
+      console.log('API Response:', responseData);
       
       // Check if registration was successful
       if (!response.ok) {
+        // Try to parse validation errors from the API response
+        if (responseData.message && responseData.message.includes('Validation failed:')) {
+          throw new Error(responseData.message);
+        }
         throw new Error(responseData.message || 'Registration failed');
       }
       
@@ -841,42 +858,38 @@ export default function RegisterPage() {
       
       case "organizationId":
         return (
-          <div key={fieldName} className="space-y-2 relative">
-            <Label htmlFor={fieldName}>Organization (Optional)</Label>
-            <div className="relative">
-              <OrganizationCombobox
-                value={watch('organizationId') || ''}
-                onChange={(value) => {
-                  setValue('organizationId', value, { 
-                    shouldValidate: true, 
-                    shouldDirty: true 
-                  });
-                  
-                  // If organization is selected, pre-fill organization name for marshals
-                  if (selectedRole === 'Marshal' && value) {
-                    getOrganizationById(value)
-                      .then(org => {
-                        if (org?.name) {
-                          setValue('organizationName', org.name, { 
-                            shouldValidate: true, 
-                            shouldDirty: true 
-                          });
-                        }
-                      })
-                      .catch(error => {
-                        console.error("Error fetching organization details:", error);
-                      });
-                  }
-                }}
-                className={isFieldValid(fieldName) ? "border-green-500" : ""}
-              />
-            </div>
-            {watch('organizationId') && (
-              <p className="text-xs text-muted-foreground mt-1 flex items-center">
-                <CheckCircle2 className="h-3 w-3 mr-1 text-primary" />
-                You'll be assigned as a Member upon approval. Additional roles can be assigned later.
-              </p>
-            )}
+          <div className="space-y-2">
+            <Label htmlFor={fieldName}>
+              {selectedRole === 'Runner' ? 'Organization (Optional)' : 'Organization'}
+            </Label>
+            <OrganizationCombobox
+              value={watch('organizationId') || ''}
+              onChange={(value: string) => {
+                setValue('organizationId', value, { 
+                  shouldValidate: true, 
+                  shouldDirty: true 
+                });
+                
+                // If organization is selected, pre-fill organization name for marshals
+                if (selectedRole === 'Marshal' && value) {
+                  getOrganizationById(value)
+                    .then(org => {
+                      if (org?.name) {
+                        setValue('organizationName', org.name, { 
+                          shouldValidate: true, 
+                          shouldDirty: true 
+                        });
+                      }
+                    })
+                    .catch(error => {
+                      console.error("Error fetching organization details:", error);
+                    });
+                }
+              }}
+              className={isFieldValid(fieldName) ? "border-green-500" : ""}
+              disabled={isSubmitting}
+              isRegistrationMode={true}
+            />
           </div>
         );
       
@@ -1019,9 +1032,11 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleFormSubmit} className="space-y-4">
-            {roleSteps[currentStep].fields.map(fieldName => 
-              renderField(fieldName)
-            )}
+            {roleSteps[currentStep].fields.map((fieldName, index) => (
+              <div key={`${fieldName}-${index}`}>
+                {renderField(fieldName)}
+              </div>
+            ))}
             
             {currentStep === roleSteps.length - 1 && (
               <div className="space-y-2">

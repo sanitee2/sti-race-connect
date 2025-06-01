@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Combobox, ComboboxOption } from "@/components/ui/combobox"
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 
 // Organization data type
 type Organization = {
@@ -34,6 +35,7 @@ interface OrganizationComboboxProps {
   onChange: (value: string) => void
   className?: string
   disabled?: boolean
+  isRegistrationMode?: boolean
 }
 
 export function OrganizationCombobox({
@@ -41,35 +43,58 @@ export function OrganizationCombobox({
   onChange,
   className,
   disabled = false,
+  isRegistrationMode = false,
 }: OrganizationComboboxProps) {
+  const { data: session, status } = useSession();
   const [organizations, setOrganizations] = React.useState<Organization[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
 
   // Fetch organizations from API
   React.useEffect(() => {
     const fetchOrganizations = async () => {
+      // Skip auth check if in registration mode
+      if (!isRegistrationMode && status !== 'authenticated') {
+        return;
+      }
+
       try {
         setIsLoading(true);
-        const response = await fetch('/api/organizations');
+        const response = await fetch('/api/organizations', {
+          credentials: isRegistrationMode ? 'omit' : 'include', // Skip credentials in registration mode
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (response.status === 401) {
+          if (!isRegistrationMode) {
+            toast.error('Authentication required', {
+              description: 'Please sign in to view organizations'
+            });
+          }
+          return;
+        }
         
         if (!response.ok) {
-          throw new Error('Failed to fetch organizations');
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
         setOrganizations(data);
       } catch (err) {
         console.error('Error fetching organizations:', err);
-        toast.error('Failed to load organizations', {
-          description: 'Please try again later'
-        });
+        if (!isRegistrationMode) {
+          toast.error('Failed to load organizations', {
+            description: err instanceof Error ? err.message : 'Please try again later'
+          });
+        }
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchOrganizations();
-  }, []);
+  }, [status, isRegistrationMode]);
 
   // Convert organizations to options format
   const organizationOptions = React.useMemo(
@@ -85,10 +110,20 @@ export function OrganizationCombobox({
       options={organizationOptions}
       value={value}
       onChange={onChange}
-      placeholder={isLoading ? "Loading organizations..." : "Select an organization (optional)"}
-      emptyMessage="No organizations found."
+      placeholder={
+        isLoading 
+          ? "Loading organizations..." 
+          : !isRegistrationMode && status !== 'authenticated'
+          ? "Please sign in to view organizations"
+          : "Select an organization (optional)"
+      }
+      emptyMessage={
+        !isRegistrationMode && status !== 'authenticated'
+          ? "Authentication required"
+          : "No organizations found."
+      }
       className={className}
-      disabled={disabled || isLoading}
+      disabled={disabled || isLoading || (!isRegistrationMode && status !== 'authenticated')}
     />
   )
 }

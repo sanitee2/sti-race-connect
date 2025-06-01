@@ -20,28 +20,46 @@ const createOrgSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+    const isRegistrationMode = req.headers.get('credentials') === 'omit';
     
-    if (!session || !session.user) {
+    // Allow access without authentication if in registration mode
+    if (!isRegistrationMode && !session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     const organizations = await prisma.organizations.findMany({
-      include: {
-        members: {
-          select: {
-            id: true,
-            user_id: true,
-            membership_role: true,
-            joined_at: true,
-            user: {
-              select: {
-                name: true,
-                email: true,
-                profile_picture: true
+      select: {
+        id: true,
+        name: true,
+        is_verified: true,
+        // Only include sensitive data if authenticated
+        ...(session?.user && {
+          description: true,
+          address: true,
+          logo_url: true,
+          website: true,
+          phone_number: true,
+          email: true,
+          social_media: true,
+          created_at: true,
+          updated_at: true,
+          created_by: true,
+          members: {
+            select: {
+              id: true,
+              user_id: true,
+              membership_role: true,
+              joined_at: true,
+              user: {
+                select: {
+                  name: true,
+                  email: true,
+                  profile_picture: true
+                }
               }
             }
           }
-        }
+        })
       }
     });
     
