@@ -29,10 +29,6 @@ interface RegisterFormData {
   emergencyContactPhone: string;
   emergencyContactRelationship: string;
   organizationId: string;
-  organizationName: string;
-  rolePosition: string;
-  socialMediaLinks: string;
-  responsibilities: string;
   terms: boolean;
 }
 
@@ -55,7 +51,7 @@ const steps: Record<Role, StepType[]> = {
     { name: "Account Information", fields: ["name", "email", "password"] },
     { name: "Profile Picture", fields: ["profile_picture"] },
     { name: "Personal Details", fields: ["phoneNumber", "dateOfBirth", "gender", "address"] },
-    { name: "Professional Details", fields: ["organizationId"] },
+    { name: "Organization", fields: ["organizationId"] },
   ]
 };
 
@@ -169,7 +165,7 @@ export default function RegisterPage() {
     console.log('Validating fields:', fieldsToCheck);
     
     // Exclude optional fields
-    const optionalFields = ['organizationId', 'socialMediaLinks'];
+    const optionalFields = ['organizationId'];
     const requiredFields = fieldsToCheck.filter(field => !optionalFields.includes(field));
     
     // Make sure all required fields are registered properly
@@ -234,11 +230,7 @@ export default function RegisterPage() {
               'emergencyContactPhone',
               'emergencyContactRelationship'
             ]
-          : [
-              'organizationName',
-              'rolePosition',
-              'responsibilities'
-            ]
+          : []  // No additional required fields for Marshal
         )
       ];
       
@@ -269,10 +261,10 @@ export default function RegisterPage() {
               } 
             : {
                 organizationId: data.organizationId || undefined,
-                organizationName: data.organizationName,
-                rolePosition: data.rolePosition,
+                organizationName: "Not specified",
+                rolePosition: "Member",
                 socialMediaLinks: null,
-                responsibilities: data.responsibilities
+                responsibilities: "General marshal duties"
               }
           )
         }
@@ -792,39 +784,11 @@ export default function RegisterPage() {
         );
       
       case "responsibilities":
-        return (
-          <div key={fieldName} className="space-y-2 relative">
-            <Label htmlFor={fieldName}>Responsibilities</Label>
-            <div className="relative">
-              <Textarea
-                id={fieldName}
-                placeholder="Describe your responsibilities"
-                className={`min-h-[100px] ${errors.responsibilities ? "border-destructive pr-10" : ""} 
-                            ${isFieldValid('responsibilities') ? "border-green-500 pr-10" : ""}`}
-                {...register('responsibilities' as keyof RegisterFormData, { required: true })}
-                onBlur={() => trigger('responsibilities')}
-              />
-              {errors.responsibilities && (
-                <AlertCircle className="h-5 w-5 text-destructive absolute top-3 right-3" />
-              )}
-              {isFieldValid('responsibilities') && (
-                <CheckCircle2 className="h-5 w-5 text-green-500 absolute top-3 right-3" />
-              )}
-            </div>
-            {errors.responsibilities && (
-              <p className="text-destructive text-sm flex items-center gap-1">
-                This field is required
-              </p>
-            )}
-          </div>
-        );
+        return null;
       
       case "emergencyContactName":
       case "emergencyContactPhone":
       case "emergencyContactRelationship":
-      case "organizationName":
-      case "rolePosition":
-      case "socialMediaLinks":
       case "address":
         return (
           <div key={fieldName} className="space-y-2 relative">
@@ -860,7 +824,7 @@ export default function RegisterPage() {
         return (
           <div className="space-y-2">
             <Label htmlFor={fieldName}>
-              {selectedRole === 'Runner' ? 'Organization (Optional)' : 'Organization'}
+              Organization (Optional)
             </Label>
             <OrganizationCombobox
               value={watch('organizationId') || ''}
@@ -869,22 +833,6 @@ export default function RegisterPage() {
                   shouldValidate: true, 
                   shouldDirty: true 
                 });
-                
-                // If organization is selected, pre-fill organization name for marshals
-                if (selectedRole === 'Marshal' && value) {
-                  getOrganizationById(value)
-                    .then(org => {
-                      if (org?.name) {
-                        setValue('organizationName', org.name, { 
-                          shouldValidate: true, 
-                          shouldDirty: true 
-                        });
-                      }
-                    })
-                    .catch(error => {
-                      console.error("Error fetching organization details:", error);
-                    });
-                }
               }}
               className={isFieldValid(fieldName) ? "border-green-500" : ""}
               disabled={isSubmitting}
@@ -915,7 +863,7 @@ export default function RegisterPage() {
             </div>
           </div>
         );
-        
+      
       default:
         return null;
     }
