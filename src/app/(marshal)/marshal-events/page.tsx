@@ -279,7 +279,7 @@ export default function EventsPage() {
     setIsLoading(true);
     try {
       const newEvent = await createEvent(eventFormData);
-      setEvents(prev => [...prev, newEvent]);
+      await fetchEvents();
       resetEventForm();
       setIsCreateEventOpen(false);
       toast.success("Event Created", {
