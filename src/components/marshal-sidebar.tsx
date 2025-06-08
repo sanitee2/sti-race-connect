@@ -9,32 +9,32 @@ const marshalNavItems: NavItem[] = [
   {
     href: '/dashboard',
     label: 'Dashboard',
-    icon: <Home />,
+    icon: <Home className="h-5 w-5 flex-shrink-0" />,
   },
   {
     href: '/marshal-events',
     label: 'Events',
-    icon: <Calendar />,
+    icon: <Calendar className="h-5 w-5 flex-shrink-0" />,
   },
   {
     href: '/participants',
     label: 'Participants',
-    icon: <Users />,
+    icon: <Users className="h-5 w-5 flex-shrink-0" />,
   },
   {
     href: '/organizations',
     label: 'Organizations',
-    icon: <Building2 />,
+    icon: <Building2 className="h-5 w-5 flex-shrink-0" />,
   },
   {
     href: '/profile',
     label: 'Profile',
-    icon: <User />,
+    icon: <User className="h-5 w-5 flex-shrink-0" />,
   },
   {
     href: '/settings',
     label: 'Settings',
-    icon: <Settings />,
+    icon: <Settings className="h-5 w-5 flex-shrink-0" />,
   },
 ];
 
