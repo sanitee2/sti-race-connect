@@ -31,6 +31,8 @@ model users {
   name                  String
   email                 String              @unique
   password              String
+  phone                 String?
+  address               String?
   phone_number          String?
   profile_picture       String? // URL to profile picture in Digital Ocean Spaces
   role                  Role                @default(Guest)
