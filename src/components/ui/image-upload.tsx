@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import Image from "next/image";
@@ -10,7 +10,7 @@ import { uploadToSpaces, deleteFromSpaces } from "@/lib/upload";
 import { toast } from "sonner";
 
 export type ImageUploadProps = {
-  variant: "profile" | "gallery";
+  variant: "profile" | "gallery" | "featured";
   images?: string[];
   onChange: (value: string | string[]) => void;
   className?: string;
@@ -25,11 +25,16 @@ export function ImageUpload({
   onChange,
   className,
   maxImages = 5,
-  folder = variant === "profile" ? "profile-picture" : "image-gallery",
+  folder = variant === "profile" ? "profile-picture" : variant === "featured" ? "featured-images" : "image-gallery",
   useCloud = true,
 }: ImageUploadProps) {
   const [files, setFiles] = useState<string[]>(images);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Sync internal state with prop changes
+  useEffect(() => {
+    setFiles(images);
+  }, [images]);
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
@@ -38,8 +43,8 @@ export function ImageUpload({
         
         if (useCloud) {
           // Upload to Digital Ocean Spaces
-          if (variant === "profile") {
-            // For profile, we only need one image
+          if (variant === "profile" || variant === "featured") {
+            // For profile and featured, we only need one image
             const file = acceptedFiles[0];
             
             // Delete the previous image if it exists
@@ -48,7 +53,7 @@ export function ImageUpload({
               try {
                 await deleteFromSpaces(previousImage);
               } catch (error) {
-                console.error("Failed to delete previous profile image:", error);
+                console.error("Failed to delete previous image:", error);
                 // Continue with upload even if deletion fails
               }
             }
@@ -77,8 +82,8 @@ export function ImageUpload({
               if (event.target?.result) {
                 const dataUrl = event.target.result as string;
                 
-                if (variant === "profile") {
-                  // For profile picture, replace the current image
+                if (variant === "profile" || variant === "featured") {
+                  // For profile picture and featured image, replace the current image
                   setFiles([dataUrl]);
                   onChange(dataUrl);
                 } else {
@@ -109,7 +114,7 @@ export function ImageUpload({
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
-    maxFiles: variant === "profile" ? 1 : maxImages,
+    maxFiles: variant === "profile" || variant === "featured" ? 1 : maxImages,
     disabled: isUploading,
   });
 
@@ -131,7 +136,7 @@ export function ImageUpload({
       }
     }
     
-    if (variant === "profile") {
+    if (variant === "profile" || variant === "featured") {
       onChange("");
     } else {
       onChange(newFiles);
@@ -189,6 +194,63 @@ export function ImageUpload({
                   : isUploading 
                     ? "Uploading..." 
                     : "Drag & drop or click"}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {variant === "featured" && (
+        <div className="space-y-4 w-full">
+          {files.length > 0 ? (
+            <div className="relative w-full">
+              <div className="rounded-lg overflow-hidden w-full h-32 relative bg-muted">
+                <Image
+                  src={files[0]}
+                  alt="Featured Image"
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover rounded-lg"
+                />
+              </div>
+              <div className="absolute top-2 right-2">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-8 w-8 rounded-full shadow-md z-10 flex items-center justify-center p-0"
+                  onClick={() => removeImage(0)}
+                  disabled={isUploading}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              {...getRootProps()}
+              className={cn(
+                "border-2 border-dashed rounded-lg w-full h-32 flex flex-col items-center justify-center cursor-pointer transition-colors",
+                isDragActive
+                  ? "border-primary/70 bg-primary/5"
+                  : "border-muted-foreground/25 hover:border-primary/50",
+                isUploading && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <input {...getInputProps()} />
+              {isUploading ? (
+                <Loader2 className="h-10 w-10 text-muted-foreground mb-2 animate-spin" />
+              ) : (
+                <ImageIcon className="h-10 w-10 text-muted-foreground mb-2" />
+              )}
+              <p className="text-sm text-muted-foreground text-center font-medium">
+                {isDragActive 
+                  ? "Drop featured image here" 
+                  : isUploading 
+                    ? "Uploading..." 
+                    : "Drag & drop or click to upload"}
+              </p>
+              <p className="text-xs text-muted-foreground text-center mt-1">
+                Recommended: 16:9 aspect ratio for best results
               </p>
             </div>
           )}
