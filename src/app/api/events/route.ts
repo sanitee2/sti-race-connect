@@ -3,9 +3,35 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+// Helper function to determine event status
+function getEventStatus(eventDate: Date): string {
+  const now = new Date();
+  const eventDateTime = new Date(eventDate);
+
+  if (eventDateTime < now) {
+    return "Completed";
+  } else if (eventDateTime.getTime() - now.getTime() <= 7 * 24 * 60 * 60 * 1000) {
+    return "Upcoming";
+  } else {
+    return "Scheduled";
+  }
+}
+
 // GET /api/events - Fetch all events
 export async function GET(request: NextRequest) {
   try {
+    // Get the current session
+    const session = await getServerSession(authOptions);
+
+    // Check if user is authenticated
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    // Fetch events with their categories and related data
     const events = await prisma.events.findMany({
       include: {
         creator: {
@@ -37,11 +63,11 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: {
-        event_date: 'asc',
+        event_date: 'desc',
       },
     });
 
-    // Transform the data to match frontend expectations
+    // Transform the data to match the expected format
     const transformedEvents = events.map(event => ({
       id: event.id,
       name: event.event_name,
@@ -74,9 +100,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(transformedEvents);
   } catch (error) {
-    console.error('Error fetching events:', error);
+    console.error("Error fetching events:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch events' },
+      { error: "Failed to fetch events" },
       { status: 500 }
     );
   }
@@ -190,19 +216,5 @@ export async function POST(request: NextRequest) {
       { error: 'Failed to create event' },
       { status: 500 }
     );
-  }
-}
-
-function getEventStatus(eventDate: Date): string {
-  const now = new Date();
-  const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  if (eventDay > today) {
-    return 'Upcoming';
-  } else if (eventDay.getTime() === today.getTime()) {
-    return 'Active';
-  } else {
-    return 'Completed';
   }
 } 
