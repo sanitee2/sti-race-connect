@@ -8,6 +8,8 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  phone?: string;
+  address?: string;
   profileImage?: string;
   stats?: {
     upcomingEvents: number;
@@ -143,12 +145,17 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const updateUser = async (updatedUser: User) => {
     try {
       // Send updated user data to the API
-      const response = await fetch(`/api/user/${updatedUser.id}`, {
+      const response = await fetch('/api/profile', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updatedUser),
+        body: JSON.stringify({
+          name: updatedUser.name,
+          phone: updatedUser.phone,
+          address: updatedUser.address,
+          profileImage: updatedUser.profileImage,
+        }),
       });
 
       if (!response.ok) {

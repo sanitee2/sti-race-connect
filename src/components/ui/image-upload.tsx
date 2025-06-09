@@ -30,11 +30,19 @@ export function ImageUpload({
 }: ImageUploadProps) {
   const [files, setFiles] = useState<string[]>(images);
   const [isUploading, setIsUploading] = useState(false);
+  const [prevImages, setPrevImages] = useState<string[]>(images);
 
-  // Sync internal state with prop changes
+  // Sync internal state with prop changes only when images prop actually changes
   useEffect(() => {
-    setFiles(images);
-  }, [images]);
+    const hasChanged = 
+      prevImages.length !== images.length || 
+      images.some((img, i) => img !== prevImages[i]);
+      
+    if (hasChanged) {
+      setFiles(images);
+      setPrevImages(images);
+    }
+  }, [images, prevImages]);
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {

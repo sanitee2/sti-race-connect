@@ -727,6 +727,7 @@ export default function EventsPage() {
     try {
       console.log('Calling createEvent function...');
       const newEvent = await createEvent(eventFormData);
+
       console.log('Event creation completed, result:', newEvent);
       
       setEvents(prev => {
@@ -735,6 +736,9 @@ export default function EventsPage() {
         return updatedEvents;
       });
       
+
+      await fetchEvents();
+
       resetEventForm();
       setIsCreateEventOpen(false);
       toast.success("Event Created", {
