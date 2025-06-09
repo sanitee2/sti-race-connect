@@ -46,6 +46,9 @@ model users {
   participants          participants[]      @relation("UserParticipant")
   created_organizations organizations[]     @relation("OrganizationCreator")
   organizations         user_organization[] @relation("UserOrganizations")
+  settings              user_settings?
+
+  @@map("users")
 }
 
 model runner_profile {
@@ -208,6 +211,19 @@ model role_assignment {
   role        organization_roles @relation("RoleAssignments", fields: [role_id], references: [id], onDelete: Cascade)
 
   @@unique([member_id, role_id])
+}
+
+model user_settings {
+  id                  String   @id @default(uuid()) @map("_id")
+  user_id            String   @unique
+  notifications      Json     @default("{\"email\":true,\"push\":true,\"eventReminders\":true,\"updates\":false}")
+  appearance         Json     @default("{\"theme\":\"system\",\"fontSize\":\"normal\",\"reducedMotion\":false}")
+  security           Json     @default("{\"twoFactorEnabled\":false}")
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+  user               users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
 }
 
 enum Role {
