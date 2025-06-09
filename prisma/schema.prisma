@@ -31,6 +31,8 @@ model users {
   name                  String
   email                 String              @unique
   password              String
+  phone                 String?
+  address               String?
   phone_number          String?
   profile_picture       String? // URL to profile picture in Digital Ocean Spaces
   role                  Role                @default(Guest)
@@ -44,6 +46,9 @@ model users {
   participants          participants[]      @relation("UserParticipant")
   created_organizations organizations[]     @relation("OrganizationCreator")
   organizations         user_organization[] @relation("UserOrganizations")
+  settings              user_settings?
+
+  @@map("users")
 }
 
 model runner_profile {
@@ -87,6 +92,7 @@ model events {
   creator          users               @relation("CreatedBy", fields: [created_by], references: [id])
   event_categories event_to_category[]
   event_staff      event_staff[]       @relation("EventStaff")
+  participants     participants[]      @relation("EventParticipants")
 }
 
 model event_categories {
@@ -120,16 +126,18 @@ model event_staff {
 model participants {
   id                  String             @id @default(auto()) @map("_id") @db.ObjectId
   user_id             String             @db.ObjectId
+  event_id            String             @db.ObjectId
   rfid_number         String?
   category_id         String             @db.ObjectId
   payment_status      PaymentStatus      @default(Pending)
   registration_status RegistrationStatus @default(Pending)
   registered_at       DateTime           @default(now())
   user                users              @relation("UserParticipant", fields: [user_id], references: [id], onDelete: Cascade)
+  event               events             @relation("EventParticipants", fields: [event_id], references: [id])
   category            event_categories   @relation("CategoryParticipant", fields: [category_id], references: [id])
   results             results[]          @relation("ParticipantResults")
 
-  @@unique([user_id, category_id])
+  @@unique([user_id, event_id, category_id])
 }
 
 model results {
@@ -203,6 +211,19 @@ model role_assignment {
   role        organization_roles @relation("RoleAssignments", fields: [role_id], references: [id], onDelete: Cascade)
 
   @@unique([member_id, role_id])
+}
+
+model user_settings {
+  id                  String   @id @default(uuid()) @map("_id")
+  user_id            String   @unique
+  notifications      Json     @default("{\"email\":true,\"push\":true,\"eventReminders\":true,\"updates\":false}")
+  appearance         Json     @default("{\"theme\":\"system\",\"fontSize\":\"normal\",\"reducedMotion\":false}")
+  security           Json     @default("{\"twoFactorEnabled\":false}")
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+  user               users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
 }
 
 enum Role {
