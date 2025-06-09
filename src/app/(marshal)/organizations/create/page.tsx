@@ -233,7 +233,7 @@ export default function CreateOrganizationPage() {
 
   return (
     <div className="space-y-6 pb-10">
-      {/* Header with back button and progress bar */}
+      {/* Header with back button and step indicators */}
       <div className="mb-8">
         <Button 
           variant="ghost" 
@@ -251,43 +251,56 @@ export default function CreateOrganizationPage() {
           </p>
         </div>
         
-        {/* Progress bar */}
-        <div className="mt-6 relative">
-          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-300 ease-out"
-              style={{ width: `${progressPercentage}%` }}
-            />
+        {/* Step indicators with connecting lines */}
+        <div className="mt-6 relative flex justify-between">
+          {/* Connecting lines - positioned to align with the center of the circles */}
+          <div className="absolute top-[14px] left-[16px] right-[16px] flex items-center">
+            <div className="w-full h-[2px] bg-muted-foreground/20">
+              <div 
+                className="h-full bg-primary transition-all duration-300"
+                style={{ 
+                  width: `${Math.max(((currentStep) / (formSteps.length - 1)) * 100, 0)}%` 
+                }}
+              />
+            </div>
           </div>
           
-          {/* Step indicators */}
-          <div className="flex justify-between mt-2">
-            {formSteps.map((step, index) => (
-              <div 
-                key={step.id} 
-                className={`flex flex-col items-center cursor-pointer transition-colors ${
-                  index <= currentStep ? 'text-primary' : 'text-muted-foreground'
-                }`}
-                onClick={() => jumpToStep(index)}
-              >
+          {/* Step circles */}
+          <div className="w-full flex justify-between z-10">
+            {formSteps.map((step, index) => {
+              const isCompleted = index < currentStep;
+              const isActive = index === currentStep;
+              const canNavigate = index < currentStep;
+              
+              return (
                 <div 
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all 
-                    ${index < currentStep 
-                      ? 'bg-primary text-primary-foreground' 
-                      : index === currentStep 
-                        ? 'border-2 border-primary text-primary'
-                        : 'border border-muted-foreground/30 text-muted-foreground'
-                    }`}
+                  key={step.id} 
+                  className={`flex flex-col items-center ${canNavigate ? 'cursor-pointer' : ''}`}
+                  onClick={() => canNavigate && jumpToStep(index)}
                 >
-                  {index < currentStep ? (
-                    <CheckCircle2 className="h-4 w-4" />
-                  ) : (
-                    index + 1
-                  )}
+                  <div 
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm ${
+                      isCompleted
+                        ? 'bg-primary text-primary-foreground border-0' 
+                        : isActive
+                          ? 'bg-background text-primary ring-2 ring-primary'
+                          : 'bg-background border border-muted-foreground/30'
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      index + 1
+                    )}
+                  </div>
+                  <span className={`text-xs mt-1 font-medium transition-colors text-center max-w-[80px] leading-tight ${
+                    isCompleted || isActive ? 'text-primary' : 'text-muted-foreground'
+                  }`}>
+                    {step.title.split(' ')[0]}
+                  </span>
                 </div>
-                <span className="text-xs mt-1 font-medium hidden md:block">{step.title}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

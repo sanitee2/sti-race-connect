@@ -1024,20 +1024,9 @@ export default function EventsPage() {
   };
 
   const handleManageStaff = (event: Event) => {
-    // This would open a staff management dialog
-    toast.info("Staff management feature coming soon.");
+    console.log('Managing staff for event:', event.name);
+    // TODO: Implement staff management functionality
   };
-
-  if (isPageLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading events...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -1105,6 +1094,7 @@ export default function EventsPage() {
         <TabsContent value="upcoming" className="mt-0">
           <EventsDisplay 
             events={filteredEvents} 
+            isLoading={isPageLoading}
             onManageCategories={openCategoryManagement}
             onEditEvent={openEditEvent}
             onDeleteEvent={openDeleteEvent}
@@ -1116,6 +1106,7 @@ export default function EventsPage() {
         <TabsContent value="past" className="mt-0">
           <EventsDisplay 
             events={filteredEvents} 
+            isLoading={isPageLoading}
             onManageCategories={openCategoryManagement}
             onEditEvent={openEditEvent}
             onDeleteEvent={openDeleteEvent}
@@ -1127,6 +1118,7 @@ export default function EventsPage() {
         <TabsContent value="all" className="mt-0">
           <EventsDisplay 
             events={filteredEvents} 
+            isLoading={isPageLoading}
             onManageCategories={openCategoryManagement}
             onEditEvent={openEditEvent}
             onDeleteEvent={openDeleteEvent}
@@ -2378,6 +2370,7 @@ export default function EventsPage() {
 // Component to display events in either card or table format
 function EventsDisplay({ 
   events, 
+  isLoading,
   onManageCategories,
   onEditEvent,
   onDeleteEvent,
@@ -2385,6 +2378,7 @@ function EventsDisplay({
   onManageStaff
 }: { 
   events: Event[],
+  isLoading: boolean,
   onManageCategories: (event: Event) => void,
   onEditEvent: (event: Event) => void,
   onDeleteEvent: (event: Event) => void,
@@ -2392,6 +2386,71 @@ function EventsDisplay({
   onManageStaff: (event: Event) => void
 }) {
   const [viewMode, setViewMode] = useState("cards");
+  
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <div className="border rounded-md overflow-hidden flex">
+            <Button 
+              variant={viewMode === "cards" ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setViewMode("cards")}
+              className="rounded-none"
+              disabled
+            >
+              Cards
+            </Button>
+            <Button 
+              variant={viewMode === "table" ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setViewMode("table")}
+              className="rounded-none"
+              disabled
+            >
+              Table
+            </Button>
+          </div>
+        </div>
+        
+        {viewMode === "cards" ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, index) => (
+              <div key={index} className="h-64 bg-muted rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Event Name</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Categories</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[...Array(5)].map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
+                    <TableCell><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
+                    <TableCell><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
+                    <TableCell><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
+                    <TableCell><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
+                    <TableCell><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-4">
