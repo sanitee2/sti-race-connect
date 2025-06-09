@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -100,7 +101,7 @@ model event_categories {
   category_name   String
   description     String
   target_audience String
-  category_image  String?             // URL to category image in Digital Ocean Spaces
+  category_image  String? // URL to category image in Digital Ocean Spaces
   created_by      String              @db.ObjectId
   created_at      DateTime            @default(now())
   updated_at      DateTime            @updatedAt
