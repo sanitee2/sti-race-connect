@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, MapPin, Users, Search, Plus, Filter, ChevronDown, Eye, Edit, Trash2, UserPlus, Award, Check, X, Images, Flag } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, Search, Plus, Filter, ChevronDown, Eye, Edit, Trash2, UserPlus, Award, Check, X, Images, Flag, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +63,7 @@ interface EventFormData {
   target_audience: string;
   cover_image?: string; // Featured image for the event
   gallery_images?: string[]; // Gallery images for the event
+  categories?: CategoryFormData[]; // Event categories
 }
 
 interface CategoryFormData {
@@ -71,6 +72,35 @@ interface CategoryFormData {
   targetAudience: string;
   image?: string; // Category image
 }
+
+// Define form steps for event creation with proper structure
+interface EventStepType {
+  name: string;
+  fields: string[];
+}
+
+const eventFormSteps: EventStepType[] = [
+  { 
+    name: "Basic Information", 
+    fields: ["name", "location", "date", "time"] 
+  },
+  { 
+    name: "Details & Description", 
+    fields: ["description", "target_audience"] 
+  },
+  { 
+    name: "Categories", 
+    fields: ["categories"] 
+  },
+  { 
+    name: "Media & Images", 
+    fields: ["cover_image", "gallery_images"] 
+  },
+  { 
+    name: "Review & Create", 
+    fields: [] 
+  }
+];
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -88,6 +118,10 @@ export default function EventsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
   
+  // Multi-step form state
+  const [currentStep, setCurrentStep] = useState(0);
+  const [currentEditStep, setCurrentEditStep] = useState(0);
+  
   // Form states
   const [eventFormData, setEventFormData] = useState<EventFormData>({
     name: "",
@@ -97,7 +131,8 @@ export default function EventsPage() {
     location: "",
     target_audience: "",
     cover_image: "",
-    gallery_images: []
+    gallery_images: [],
+    categories: []
   });
 
   const [categoryFormData, setCategoryFormData] = useState<CategoryFormData>({
@@ -133,6 +168,8 @@ export default function EventsPage() {
   };
 
   const createEvent = async (eventData: EventFormData) => {
+    console.log('Creating event with data:', eventData);
+    
     const response = await fetch('/api/events', {
       method: 'POST',
       headers: {
@@ -155,7 +192,71 @@ export default function EventsPage() {
       throw new Error(error.error || 'Failed to create event');
     }
 
-    return response.json();
+    const createdEvent = await response.json();
+    console.log('Event created successfully:', createdEvent);
+
+    // Create categories if any exist
+    if (eventData.categories && eventData.categories.length > 0) {
+      console.log('Creating categories:', eventData.categories);
+      
+      const categoryPromises = [];
+      
+      for (const category of eventData.categories) {
+        if (category.name.trim()) { // Only create categories with names
+          console.log('Creating category:', category);
+          
+          const categoryPromise = fetch(`/api/events/${createdEvent.id}/categories`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: category.name,
+              description: category.description,
+              targetAudience: category.targetAudience,
+              image: category.image,
+            }),
+          }).then(async (categoryResponse) => {
+            if (!categoryResponse.ok) {
+              const categoryError = await categoryResponse.json();
+              console.error('Error creating category:', categoryError);
+              throw new Error(`Failed to create category "${category.name}": ${categoryError.error}`);
+            }
+            const createdCategory = await categoryResponse.json();
+            console.log('Category created successfully:', createdCategory);
+            return createdCategory;
+          });
+          
+          categoryPromises.push(categoryPromise);
+        }
+      }
+      
+      // Wait for all categories to be created
+      try {
+        const createdCategories = await Promise.all(categoryPromises);
+        console.log('All categories created:', createdCategories);
+        
+        // Fetch the updated event with categories
+        const updatedResponse = await fetch(`/api/events/${createdEvent.id}`);
+        if (updatedResponse.ok) {
+          const updatedEvent = await updatedResponse.json();
+          console.log('Updated event with categories:', updatedEvent);
+          return updatedEvent;
+        } else {
+          console.warn('Failed to fetch updated event, returning original event');
+          return createdEvent;
+        }
+      } catch (categoryError) {
+        console.error('Error creating categories:', categoryError);
+        // Don't fail the entire event creation if categories fail
+        const errorMessage = categoryError instanceof Error ? categoryError.message : 'Unknown error occurred';
+        toast.error(`Event created but some categories failed: ${errorMessage}`);
+        return createdEvent;
+      }
+    }
+
+    console.log('No categories to create, returning event');
+    return createdEvent;
   };
 
   const updateEvent = async (eventId: string, eventData: EventFormData) => {
@@ -181,7 +282,13 @@ export default function EventsPage() {
       throw new Error(error.error || 'Failed to update event');
     }
 
-    return response.json();
+    const updatedEvent = await response.json();
+
+    // Note: For now, we're not updating categories during event edit
+    // Categories should be managed separately through the category management dialog
+    // This prevents accidental deletion of categories with participants
+
+    return updatedEvent;
   };
 
   const deleteEvent = async (eventId: string) => {
@@ -272,20 +379,369 @@ export default function EventsPage() {
     return matchesSearch && matchesTab && matchesStatus;
   });
 
+  // Multi-step form navigation functions for create
+  const validateCurrentStep = async (): Promise<boolean> => {
+    const currentStepFields = eventFormSteps[currentStep].fields;
+    
+    switch (currentStep) {
+      case 0: // Basic Information
+        if (!eventFormData.name.trim()) {
+          toast.error("Event name is required");
+          return false;
+        }
+        if (!eventFormData.location.trim()) {
+          toast.error("Location is required");
+          return false;
+        }
+        if (!eventFormData.date) {
+          toast.error("Event date is required");
+          return false;
+        }
+        if (!eventFormData.time) {
+          toast.error("Event time is required");
+          return false;
+        }
+        return true;
+      
+      case 1: // Details & Description
+        // Description and target audience are optional, so always valid
+        return true;
+      
+      case 2: // Categories
+        // Categories are optional, so always valid
+        return true;
+      
+      case 3: // Media & Images
+        // Images are optional, so always valid
+        return true;
+      
+      case 4: // Review & Create
+        // Final validation before submission
+        return validateEventForm();
+      
+      default:
+        return true;
+    }
+  };
+
+  const nextStep = async () => {
+    // Validate current step before proceeding
+    const isValid = await validateCurrentStep();
+    
+    if (isValid) {
+      // If we're on the last step, submit the form
+      if (currentStep === eventFormSteps.length - 1) {
+        handleCreateEvent();
+        return;
+      }
+      
+      // Otherwise move to next step
+      setCurrentStep(prev => Math.min(prev + 1, eventFormSteps.length - 1));
+    }
+  };
+
+  const prevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  };
+
+  // Function to check if a step is complete
+  const isStepComplete = (stepIndex: number): boolean => {
+    if (stepIndex >= currentStep) return false;
+    
+    const stepFields = eventFormSteps[stepIndex].fields;
+    return stepFields.every(field => {
+      switch (field) {
+        case 'name':
+          return eventFormData.name.trim() !== '';
+        case 'location':
+          return eventFormData.location.trim() !== '';
+        case 'date':
+          return eventFormData.date !== undefined;
+        case 'time':
+          return eventFormData.time !== undefined;
+        case 'description':
+          return true; // Optional field
+        case 'target_audience':
+          return true; // Optional field
+        case 'categories':
+          return true; // Optional field
+        case 'cover_image':
+          return true; // Optional field
+        case 'gallery_images':
+          return true; // Optional field
+        default:
+          return true;
+      }
+    });
+  };
+
+  // Function to navigate to a specific step if it's a previous completed step
+  const goToStep = (stepIndex: number) => {
+    // Allow going to previous steps or current step
+    if (stepIndex <= currentStep) {
+      setCurrentStep(stepIndex);
+    }
+  };
+
+  // Multi-step form navigation functions for edit
+  const validateCurrentEditStep = async (): Promise<boolean> => {
+    const currentStepFields = eventFormSteps[currentEditStep].fields;
+    
+    switch (currentEditStep) {
+      case 0: // Basic Information
+        if (!eventFormData.name.trim()) {
+          toast.error("Event name is required");
+          return false;
+        }
+        if (!eventFormData.location.trim()) {
+          toast.error("Location is required");
+          return false;
+        }
+        if (!eventFormData.date) {
+          toast.error("Event date is required");
+          return false;
+        }
+        if (!eventFormData.time) {
+          toast.error("Event time is required");
+          return false;
+        }
+        return true;
+      
+      case 1: // Details & Description
+        // Description and target audience are optional, so always valid
+        return true;
+      
+      case 2: // Categories
+        // Categories are optional, so always valid
+        return true;
+      
+      case 3: // Media & Images
+        // Images are optional, so always valid
+        return true;
+      
+      case 4: // Review & Update
+        // Final validation before submission
+        return validateEventForm();
+      
+      default:
+        return true;
+    }
+  };
+
+  const nextEditStep = async () => {
+    // Validate current step before proceeding
+    const isValid = await validateCurrentEditStep();
+    
+    if (isValid) {
+      // If we're on the last step, submit the form
+      if (currentEditStep === eventFormSteps.length - 1) {
+        handleEditEvent();
+        return;
+      }
+      
+      // Otherwise move to next step
+      setCurrentEditStep(prev => Math.min(prev + 1, eventFormSteps.length - 1));
+    }
+  };
+
+  const prevEditStep = () => {
+    setCurrentEditStep(prev => Math.max(prev - 1, 0));
+  };
+
+  // Function to check if an edit step is complete
+  const isEditStepComplete = (stepIndex: number): boolean => {
+    if (stepIndex >= currentEditStep) return false;
+    
+    const stepFields = eventFormSteps[stepIndex].fields;
+    return stepFields.every(field => {
+      switch (field) {
+        case 'name':
+          return eventFormData.name.trim() !== '';
+        case 'location':
+          return eventFormData.location.trim() !== '';
+        case 'date':
+          return eventFormData.date !== undefined;
+        case 'time':
+          return eventFormData.time !== undefined;
+        case 'description':
+          return true; // Optional field
+        case 'target_audience':
+          return true; // Optional field
+        case 'categories':
+          return true; // Optional field
+        case 'cover_image':
+          return true; // Optional field
+        case 'gallery_images':
+          return true; // Optional field
+        default:
+          return true;
+      }
+    });
+  };
+
+  // Function to navigate to a specific edit step if it's a previous completed step
+  const goToEditStep = (stepIndex: number) => {
+    // Allow going to previous steps or current step
+    if (stepIndex <= currentEditStep) {
+      setCurrentEditStep(stepIndex);
+    }
+  };
+
+  // Render step indicators for create form
+  const renderStepIndicators = () => (
+    <div className="relative flex justify-between mb-4">
+      {/* Connecting lines - positioned to align with the center of the circles */}
+      <div className="absolute top-[14px] left-[16px] right-[16px] flex items-center">
+        <div className="w-full h-[2px] bg-muted-foreground/20">
+          <div 
+            className="h-full bg-primary transition-all duration-300"
+            style={{ 
+              width: `${Math.max(((currentStep) / (eventFormSteps.length - 1)) * 100, 0)}%` 
+            }}
+          />
+        </div>
+      </div>
+      
+      {/* Step circles */}
+      <div className="w-full flex justify-between z-10">
+        {eventFormSteps.map((step: EventStepType, index: number) => {
+          const isCompleted = index < currentStep;
+          const isActive = index === currentStep;
+          const canNavigate = index < currentStep;
+          
+          return (
+            <div 
+              key={index} 
+              className={`flex flex-col items-center ${canNavigate ? 'cursor-pointer' : ''}`}
+              onClick={() => canNavigate && goToStep(index)}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm ${
+                  isCompleted
+                    ? 'bg-primary text-primary-foreground border-0'
+                    : isActive
+                    ? 'bg-background text-primary ring-2 ring-primary'
+                    : 'bg-background border border-muted-foreground/30'
+                }`}
+              >
+                {isCompleted ? (
+                  <CheckCircle2 className="w-4 h-4" />
+                ) : (
+                  index + 1
+                )}
+              </div>
+              <span className={`text-xs mt-1 font-medium transition-colors text-center max-w-[80px] leading-tight ${
+                isCompleted || isActive ? 'text-primary' : 'text-muted-foreground'
+              }`}>
+                {step.name.split(' ')[0]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // Render step indicators for edit form
+  const renderEditStepIndicators = () => (
+    <div className="relative flex justify-between mb-4">
+      {/* Connecting lines - positioned to align with the center of the circles */}
+      <div className="absolute top-[14px] left-[16px] right-[16px] flex items-center">
+        <div className="w-full h-[2px] bg-muted-foreground/20">
+          <div 
+            className="h-full bg-primary transition-all duration-300"
+            style={{ 
+              width: `${Math.max(((currentEditStep) / (eventFormSteps.length - 1)) * 100, 0)}%` 
+            }}
+          />
+        </div>
+      </div>
+      
+      {/* Step circles */}
+      <div className="w-full flex justify-between z-10">
+        {eventFormSteps.map((step: EventStepType, index: number) => {
+          const isCompleted = index < currentEditStep;
+          const isActive = index === currentEditStep;
+          const canNavigate = index < currentEditStep;
+          
+          return (
+            <div 
+              key={index} 
+              className={`flex flex-col items-center ${canNavigate ? 'cursor-pointer' : ''}`}
+              onClick={() => canNavigate && goToEditStep(index)}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm ${
+                  isCompleted
+                    ? 'bg-primary text-primary-foreground border-0'
+                    : isActive
+                    ? 'bg-background text-primary ring-2 ring-primary'
+                    : 'bg-background border border-muted-foreground/30'
+                }`}
+              >
+                {isCompleted ? (
+                  <CheckCircle2 className="w-4 h-4" />
+                ) : (
+                  index + 1
+                )}
+              </div>
+              <span className={`text-xs mt-1 font-medium transition-colors text-center max-w-[80px] leading-tight ${
+                isCompleted || isActive ? 'text-primary' : 'text-muted-foreground'
+              }`}>
+                {step.name.split(' ')[0]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const resetEventForm = () => {
+    setEventFormData({
+      name: "",
+      description: "",
+      date: undefined,
+      time: undefined,
+      location: "",
+      target_audience: "",
+      cover_image: "",
+      gallery_images: [],
+      categories: []
+    });
+    setCurrentStep(0); // Reset to first step
+    setCurrentEditStep(0); // Reset edit step too
+  };
+
   // Event CRUD Functions
   const handleCreateEvent = async () => {
-    if (!validateEventForm()) return;
+    console.log('handleCreateEvent called');
+    console.log('Current eventFormData:', eventFormData);
+    
+    if (!validateEventForm()) {
+      console.log('Event form validation failed');
+      return;
+    }
     
     setIsLoading(true);
     try {
+      console.log('Calling createEvent function...');
       const newEvent = await createEvent(eventFormData);
-      setEvents(prev => [...prev, newEvent]);
+      console.log('Event creation completed, result:', newEvent);
+      
+      setEvents(prev => {
+        const updatedEvents = [...prev, newEvent];
+        console.log('Updated events list:', updatedEvents);
+        return updatedEvents;
+      });
+      
       resetEventForm();
       setIsCreateEventOpen(false);
       toast.success("Event Created", {
         description: "Your event has been successfully created.",
       });
     } catch (error: any) {
+      console.error('Error in handleCreateEvent:', error);
       toast.error("Error", {
         description: error.message,
       });
@@ -484,19 +940,6 @@ export default function EventsPage() {
     return true;
   };
 
-  const resetEventForm = () => {
-    setEventFormData({
-      name: "",
-      description: "",
-      date: undefined,
-      time: undefined,
-      location: "",
-      target_audience: "",
-      cover_image: "",
-      gallery_images: []
-    });
-  };
-
   const resetCategoryForm = () => {
     setCategoryFormData({
       name: "",
@@ -520,6 +963,14 @@ export default function EventsPage() {
       timeDate.setHours(hours, minutes, 0, 0);
     }
 
+    // Map categories properly
+    const mappedCategories = event.categories?.map(cat => ({
+      name: cat.name,
+      description: cat.description,
+      targetAudience: cat.targetAudience,
+      image: cat.image || ""
+    })) || [];
+
     setEventFormData({
       name: event.name,
       description: event.description,
@@ -528,9 +979,11 @@ export default function EventsPage() {
       location: event.location,
       target_audience: event.target_audience,
       cover_image: event.cover_image || "",
-      gallery_images: event.gallery_images || []
+      gallery_images: event.gallery_images || [],
+      categories: mappedCategories
     });
     setSelectedEvent(event);
+    setCurrentEditStep(0); // Reset to first step
     setIsEditEventOpen(true);
   };
 
@@ -679,19 +1132,27 @@ export default function EventsPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Create Event Dialog */}
+      {/* Create Event Dialog - Multi-step */}
       <Dialog open={isCreateEventOpen} onOpenChange={setIsCreateEventOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Create New Event</DialogTitle>
             <DialogDescription>
-              Enter the details for the new race event.
+              {eventFormSteps[currentStep].name}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto px-1">
-            <div className="grid gap-4 py-4">
-              {/* Basic Information - 2 columns */}
-              <div className="grid grid-cols-2 gap-4">
+          
+          {/* Step Indicators */}
+          <div className="px-6 pb-4">
+            {renderStepIndicators()}
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6">
+            <div className="space-y-6 py-2">
+              {/* Step 1: Basic Information */}
+              {currentStep === 0 && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="event-name">
                     Event Name *
@@ -716,8 +1177,7 @@ export default function EventsPage() {
                 </div>
               </div>
 
-              {/* Date and Time - 2 columns */}
-              <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="event-date">
                     Event Date *
@@ -739,35 +1199,216 @@ export default function EventsPage() {
                   />
                 </div>
               </div>
+                </>
+              )}
 
-              {/* Target Audience */}
+              {/* Step 2: Details & Description */}
+              {currentStep === 1 && (
+                <>
               <div className="space-y-2">
                 <Label htmlFor="target-audience">
                   Target Audience
                 </Label>
                 <Input 
                   id="target-audience" 
-                  placeholder="e.g., All ages, Professionals" 
+                      placeholder="e.g., All ages, Professionals, Elite runners" 
                   value={eventFormData.target_audience}
                   onChange={(e) => setEventFormData(prev => ({ ...prev, target_audience: e.target.value }))}
                 />
+                    <p className="text-xs text-muted-foreground">
+                      Specify who this event is designed for (optional)
+                    </p>
               </div>
 
-              {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="description">
-                  Description
+                      Event Description
                 </Label>
                 <Textarea
                   id="description"
-                  placeholder="Provide a description of the event"
-                  rows={3}
+                      placeholder="Provide a detailed description of the event, including what participants can expect, race categories, prizes, etc."
+                      rows={6}
                   value={eventFormData.description}
                   onChange={(e) => setEventFormData(prev => ({ ...prev, description: e.target.value }))}
                 />
+                    <p className="text-xs text-muted-foreground">
+                      A good description helps participants understand what to expect (optional)
+                    </p>
               </div>
-              
-              {/* Featured Image Upload - Smaller */}
+                </>
+              )}
+
+              {/* Step 3: Categories */}
+              {currentStep === 2 && (
+                <>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-lg font-medium">Event Categories</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Add categories for your event (e.g., 5K Run, Marathon, Kids Race)
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newCategory: CategoryFormData = {
+                            name: "",
+                            description: "",
+                            targetAudience: "",
+                            image: ""
+                          };
+                          setEventFormData(prev => ({
+                            ...prev,
+                            categories: [...(prev.categories || []), newCategory]
+                          }));
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Category
+                      </Button>
+                    </div>
+
+                    {eventFormData.categories && eventFormData.categories.length > 0 ? (
+                      <div className="space-y-4">
+                        {eventFormData.categories.map((category, index) => (
+                          <div key={index} className="border rounded-lg p-4 space-y-4">
+                            <div className="flex justify-between items-center">
+                              <h4 className="font-medium">Category {index + 1}</h4>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEventFormData(prev => ({
+                                    ...prev,
+                                    categories: prev.categories?.filter((_, i) => i !== index)
+                                  }));
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor={`category-name-${index}`}>
+                                  Category Name *
+                                </Label>
+                                <Input
+                                  id={`category-name-${index}`}
+                                  placeholder="e.g., 5K Run, Marathon"
+                                  value={category.name}
+                                  onChange={(e) => {
+                                    setEventFormData(prev => ({
+                                      ...prev,
+                                      categories: prev.categories?.map((cat, i) => 
+                                        i === index ? { ...cat, name: e.target.value } : cat
+                                      )
+                                    }));
+                                  }}
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label htmlFor={`category-target-audience-${index}`}>
+                                  Target Audience
+                                </Label>
+                                <Input
+                                  id={`category-target-audience-${index}`}
+                                  placeholder="e.g., Adults, Children, Elite runners"
+                                  value={category.targetAudience}
+                                  onChange={(e) => {
+                                    setEventFormData(prev => ({
+                                      ...prev,
+                                      categories: prev.categories?.map((cat, i) => 
+                                        i === index ? { ...cat, targetAudience: e.target.value } : cat
+                                      )
+                                    }));
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor={`category-description-${index}`}>
+                                Description
+                              </Label>
+                              <Textarea
+                                id={`category-description-${index}`}
+                                placeholder="Brief description of this category"
+                                rows={2}
+                                value={category.description}
+                                onChange={(e) => {
+                                  setEventFormData(prev => ({
+                                    ...prev,
+                                    categories: prev.categories?.map((cat, i) => 
+                                      i === index ? { ...cat, description: e.target.value } : cat
+                                    )
+                                  }));
+                                }}
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label>Category Image</Label>
+                              <ImageUpload
+                                key={`category-${index}`}
+                                variant="featured"
+                                onChange={(value) => {
+                                  setEventFormData(prev => ({
+                                    ...prev,
+                                    categories: prev.categories?.map((cat, i) => 
+                                      i === index ? { ...cat, image: value as string } : cat
+                                    )
+                                  }));
+                                }}
+                                images={category.image ? [category.image] : []}
+                                useCloud={true}
+                                folder="category-images"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Upload an image for this category (optional)
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 border-2 border-dashed border-muted-foreground/25 rounded-lg">
+                        <Flag className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                        <p className="text-muted-foreground mb-4">No categories added yet</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            const newCategory: CategoryFormData = {
+                              name: "",
+                              description: "",
+                              targetAudience: "",
+                              image: ""
+                            };
+                            setEventFormData(prev => ({
+                              ...prev,
+                              categories: [...(prev.categories || []), newCategory]
+                            }));
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add First Category
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Step 4: Media & Images */}
+              {currentStep === 3 && (
+                <>
+                  <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
                   Featured Image
@@ -780,13 +1421,12 @@ export default function EventsPage() {
                     useCloud={true}
                     folder="event-covers"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Upload a featured image for the event (optional)
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Upload a featured image that will be displayed as the main event photo. This helps make your event more attractive to participants.
                   </p>
                 </div>
               </div>
               
-              {/* Gallery Images Upload - Compact */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
                   Gallery Images
@@ -800,37 +1440,184 @@ export default function EventsPage() {
                     useCloud={true}
                     folder="event-gallery"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Upload gallery images for the event (optional, max 6 images)
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Upload additional images to showcase your event venue, past events, or what participants can expect. Maximum 6 images.
                   </p>
                 </div>
               </div>
             </div>
+                </>
+              )}
+
+              {/* Step 5: Review & Create */}
+              {currentStep === 4 && (
+                <div className="space-y-6">
+                  <p className="text-sm text-muted-foreground">
+                    Review your event details before creating. You can go back to any step to make changes.
+                  </p>
+                  
+                  {/* Basic Information Summary */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Basic Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-sm font-medium">Event Name</h4>
+                        <p className="text-sm">{eventFormData.name || "Not provided"}</p>
           </div>
+                      <div>
+                        <h4 className="text-sm font-medium">Location</h4>
+                        <p className="text-sm">{eventFormData.location || "Not provided"}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium">Date</h4>
+                        <p className="text-sm">
+                          {eventFormData.date ? format(eventFormData.date, 'PPP') : "Not provided"}
+                        </p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium">Time</h4>
+                        <p className="text-sm">
+                          {eventFormData.time ? format(eventFormData.time, 'p') : "Not provided"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Details Summary */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Event Details</h3>
+                    <div>
+                      <h4 className="text-sm font-medium">Target Audience</h4>
+                      <p className="text-sm">{eventFormData.target_audience || "Not specified"}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">Description</h4>
+                      <p className="text-sm line-clamp-3">{eventFormData.description || "No description provided"}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Categories Summary */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Categories</h3>
+                    {eventFormData.categories && eventFormData.categories.length > 0 ? (
+                      <div className="space-y-3">
+                        {eventFormData.categories.map((category, index) => (
+                          <div key={index} className="border rounded-lg p-3">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <div>
+                                <h4 className="text-sm font-medium">Category Name</h4>
+                                <p className="text-sm">{category.name || "Unnamed category"}</p>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium">Target Audience</h4>
+                                <p className="text-sm">{category.targetAudience || "Not specified"}</p>
+                              </div>
+                              <div className="md:col-span-2">
+                                <h4 className="text-sm font-medium">Description</h4>
+                                <p className="text-sm">{category.description || "No description"}</p>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium">Image</h4>
+                                <p className="text-sm">{category.image ? "Uploaded" : "Not provided"}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm">No categories added</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Categories will be created and linked to the event after the event is successfully created.
+                    </p>
+                  </div>
+                  
+                  {/* Media Summary */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Media</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-sm font-medium">Featured Image</h4>
+                        <p className="text-sm">{eventFormData.cover_image ? "Uploaded" : "Not provided"}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium">Gallery Images</h4>
+                        <p className="text-sm">
+                          {eventFormData.gallery_images && eventFormData.gallery_images.length > 0 
+                            ? `${eventFormData.gallery_images.length} image(s) uploaded` 
+                            : "Not provided"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
           <DialogFooter className="border-t pt-4">
-            <Button variant="outline" onClick={() => setIsCreateEventOpen(false)}>
-              Cancel
+            <div className="flex justify-between w-full">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  if (currentStep === 0) {
+                    setIsCreateEventOpen(false);
+                  } else {
+                    prevStep();
+                  }
+                }}
+              >
+                {currentStep === 0 ? "Cancel" : "Previous"}
             </Button>
-            <Button type="submit" onClick={handleCreateEvent} disabled={isLoading}>
-              {isLoading ? "Creating..." : "Create Event"}
+              
+              <Button 
+                onClick={nextStep} 
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                {isLoading && currentStep === eventFormSteps.length - 1 ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Creating...
+                  </>
+                ) : currentStep === eventFormSteps.length - 1 ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Create Event
+                  </>
+                ) : (
+                  <>
+                    Next
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
             </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Event Dialog */}
+      {/* Edit Event Dialog - Multi-step */}
       <Dialog open={isEditEventOpen} onOpenChange={setIsEditEventOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Edit Event</DialogTitle>
             <DialogDescription>
-              Update the details for this event.
+              {eventFormSteps[currentEditStep].name}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto px-1">
-            <div className="grid gap-4 py-4">
-              {/* Basic Information - 2 columns */}
-              <div className="grid grid-cols-2 gap-4">
+          
+          {/* Step Indicators */}
+          <div className="px-6 pb-4">
+            {renderEditStepIndicators()}
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6">
+            <div className="space-y-6 py-2">
+              {/* Step 1: Basic Information */}
+              {currentEditStep === 0 && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-event-name">
                     Event Name *
@@ -855,8 +1642,7 @@ export default function EventsPage() {
                 </div>
               </div>
 
-              {/* Date and Time - 2 columns */}
-              <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-event-date">
                     Event Date *
@@ -878,35 +1664,216 @@ export default function EventsPage() {
                   />
                 </div>
               </div>
+                </>
+              )}
 
-              {/* Target Audience */}
+              {/* Step 2: Details & Description */}
+              {currentEditStep === 1 && (
+                <>
               <div className="space-y-2">
                 <Label htmlFor="edit-target-audience">
                   Target Audience
                 </Label>
                 <Input 
                   id="edit-target-audience" 
-                  placeholder="e.g., All ages, Professionals" 
+                      placeholder="e.g., All ages, Professionals, Elite runners" 
                   value={eventFormData.target_audience}
                   onChange={(e) => setEventFormData(prev => ({ ...prev, target_audience: e.target.value }))}
                 />
+                    <p className="text-xs text-muted-foreground">
+                      Specify who this event is designed for (optional)
+                    </p>
               </div>
 
-              {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="edit-description">
-                  Description
+                      Event Description
                 </Label>
                 <Textarea
                   id="edit-description"
-                  placeholder="Provide a description of the event"
-                  rows={3}
+                      placeholder="Provide a detailed description of the event, including what participants can expect, race categories, prizes, etc."
+                      rows={6}
                   value={eventFormData.description}
                   onChange={(e) => setEventFormData(prev => ({ ...prev, description: e.target.value }))}
                 />
+                    <p className="text-xs text-muted-foreground">
+                      A good description helps participants understand what to expect (optional)
+                    </p>
               </div>
-              
-              {/* Featured Image Upload - Smaller */}
+                </>
+              )}
+
+              {/* Step 3: Categories */}
+              {currentEditStep === 2 && (
+                <>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-lg font-medium">Event Categories</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Add categories for your event (e.g., 5K Run, Marathon, Kids Race)
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newCategory: CategoryFormData = {
+                            name: "",
+                            description: "",
+                            targetAudience: "",
+                            image: ""
+                          };
+                          setEventFormData(prev => ({
+                            ...prev,
+                            categories: [...(prev.categories || []), newCategory]
+                          }));
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Category
+                      </Button>
+                    </div>
+
+                    {eventFormData.categories && eventFormData.categories.length > 0 ? (
+                      <div className="space-y-4">
+                        {eventFormData.categories.map((category, index) => (
+                          <div key={index} className="border rounded-lg p-4 space-y-4">
+                            <div className="flex justify-between items-center">
+                              <h4 className="font-medium">Category {index + 1}</h4>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEventFormData(prev => ({
+                                    ...prev,
+                                    categories: prev.categories?.filter((_, i) => i !== index)
+                                  }));
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor={`category-name-${index}`}>
+                                  Category Name *
+                                </Label>
+                                <Input
+                                  id={`category-name-${index}`}
+                                  placeholder="e.g., 5K Run, Marathon"
+                                  value={category.name}
+                                  onChange={(e) => {
+                                    setEventFormData(prev => ({
+                                      ...prev,
+                                      categories: prev.categories?.map((cat, i) => 
+                                        i === index ? { ...cat, name: e.target.value } : cat
+                                      )
+                                    }));
+                                  }}
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label htmlFor={`category-target-audience-${index}`}>
+                                  Target Audience
+                                </Label>
+                                <Input
+                                  id={`category-target-audience-${index}`}
+                                  placeholder="e.g., Adults, Children, Elite runners"
+                                  value={category.targetAudience}
+                                  onChange={(e) => {
+                                    setEventFormData(prev => ({
+                                      ...prev,
+                                      categories: prev.categories?.map((cat, i) => 
+                                        i === index ? { ...cat, targetAudience: e.target.value } : cat
+                                      )
+                                    }));
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor={`category-description-${index}`}>
+                                Description
+                              </Label>
+                              <Textarea
+                                id={`category-description-${index}`}
+                                placeholder="Brief description of this category"
+                                rows={2}
+                                value={category.description}
+                                onChange={(e) => {
+                                  setEventFormData(prev => ({
+                                    ...prev,
+                                    categories: prev.categories?.map((cat, i) => 
+                                      i === index ? { ...cat, description: e.target.value } : cat
+                                    )
+                                  }));
+                                }}
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label>Category Image</Label>
+                              <ImageUpload
+                                key={`category-${index}`}
+                                variant="featured"
+                                onChange={(value) => {
+                                  setEventFormData(prev => ({
+                                    ...prev,
+                                    categories: prev.categories?.map((cat, i) => 
+                                      i === index ? { ...cat, image: value as string } : cat
+                                    )
+                                  }));
+                                }}
+                                images={category.image ? [category.image] : []}
+                                useCloud={true}
+                                folder="category-images"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Upload an image for this category (optional)
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 border-2 border-dashed border-muted-foreground/25 rounded-lg">
+                        <Flag className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                        <p className="text-muted-foreground mb-4">No categories added yet</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            const newCategory: CategoryFormData = {
+                              name: "",
+                              description: "",
+                              targetAudience: "",
+                              image: ""
+                            };
+                            setEventFormData(prev => ({
+                              ...prev,
+                              categories: [...(prev.categories || []), newCategory]
+                            }));
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add First Category
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Step 4: Media & Images */}
+              {currentEditStep === 3 && (
+                <>
+                  <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
                   Featured Image
@@ -919,13 +1886,12 @@ export default function EventsPage() {
                     useCloud={true}
                     folder="event-covers"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Upload a featured image for the event (optional)
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Upload a featured image that will be displayed as the main event photo. This helps make your event more attractive to participants.
                   </p>
                 </div>
               </div>
               
-              {/* Gallery Images Upload - Compact */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
                   Gallery Images
@@ -939,20 +1905,159 @@ export default function EventsPage() {
                     useCloud={true}
                     folder="event-gallery"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Upload gallery images for the event (optional, max 6 images)
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Upload additional images to showcase your event venue, past events, or what participants can expect. Maximum 6 images.
                   </p>
                 </div>
               </div>
             </div>
+                </>
+              )}
+
+              {/* Step 5: Review & Update */}
+              {currentEditStep === 4 && (
+                <div className="space-y-6">
+                  <p className="text-sm text-muted-foreground">
+                    Review your event changes before updating. You can go back to any step to make changes.
+                  </p>
+                  
+                  {/* Basic Information Summary */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Basic Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-sm font-medium">Event Name</h4>
+                        <p className="text-sm">{eventFormData.name || "Not provided"}</p>
           </div>
+                      <div>
+                        <h4 className="text-sm font-medium">Location</h4>
+                        <p className="text-sm">{eventFormData.location || "Not provided"}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium">Date</h4>
+                        <p className="text-sm">
+                          {eventFormData.date ? format(eventFormData.date, 'PPP') : "Not provided"}
+                        </p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium">Time</h4>
+                        <p className="text-sm">
+                          {eventFormData.time ? format(eventFormData.time, 'p') : "Not provided"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Details Summary */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Event Details</h3>
+                    <div>
+                      <h4 className="text-sm font-medium">Target Audience</h4>
+                      <p className="text-sm">{eventFormData.target_audience || "Not specified"}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">Description</h4>
+                      <p className="text-sm line-clamp-3">{eventFormData.description || "No description provided"}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Categories Summary */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Categories</h3>
+                    {eventFormData.categories && eventFormData.categories.length > 0 ? (
+                      <div className="space-y-3">
+                        {eventFormData.categories.map((category, index) => (
+                          <div key={index} className="border rounded-lg p-3">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <div>
+                                <h4 className="text-sm font-medium">Category Name</h4>
+                                <p className="text-sm">{category.name || "Unnamed category"}</p>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium">Target Audience</h4>
+                                <p className="text-sm">{category.targetAudience || "Not specified"}</p>
+                              </div>
+                              <div className="md:col-span-2">
+                                <h4 className="text-sm font-medium">Description</h4>
+                                <p className="text-sm">{category.description || "No description"}</p>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium">Image</h4>
+                                <p className="text-sm">{category.image ? "Uploaded" : "Not provided"}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm">No categories added</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Note: Categories are managed separately and will not be updated during event editing. Use the "Manage Categories" option to add, edit, or remove categories.
+                    </p>
+                  </div>
+                  
+                  {/* Media Summary */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Media</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-sm font-medium">Featured Image</h4>
+                        <p className="text-sm">{eventFormData.cover_image ? "Uploaded" : "Not provided"}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium">Gallery Images</h4>
+                        <p className="text-sm">
+                          {eventFormData.gallery_images && eventFormData.gallery_images.length > 0 
+                            ? `${eventFormData.gallery_images.length} image(s) uploaded` 
+                            : "Not provided"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
           <DialogFooter className="border-t pt-4">
-            <Button variant="outline" onClick={() => setIsEditEventOpen(false)}>
-              Cancel
+            <div className="flex justify-between w-full">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  if (currentEditStep === 0) {
+                    setIsEditEventOpen(false);
+                  } else {
+                    prevEditStep();
+                  }
+                }}
+              >
+                {currentEditStep === 0 ? "Cancel" : "Previous"}
             </Button>
-            <Button type="submit" onClick={handleEditEvent} disabled={isLoading}>
-              {isLoading ? "Updating..." : "Update Event"}
+              
+              <Button 
+                onClick={nextEditStep} 
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                {isLoading && currentEditStep === eventFormSteps.length - 1 ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Updating...
+                  </>
+                ) : currentEditStep === eventFormSteps.length - 1 ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Update Event
+                  </>
+                ) : (
+                  <>
+                    Next
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
             </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1372,7 +2477,7 @@ function EventsDisplay({
                             <Award size={14} /> Manage Categories
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="flex gap-2 items-center text-destructive" onClick={() => onDeleteEvent(event)}>
+                          <DropdownMenuItem className="flex gap-2 items-center text-destructive cursor-pointer" onClick={() => onDeleteEvent(event)}>
                             <Trash2 size={14} /> Delete Event
                           </DropdownMenuItem>
                         </DropdownMenuContent>
