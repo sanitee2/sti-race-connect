@@ -76,6 +76,16 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             if (parsedUser.profileImage) {
               preloadImage(parsedUser.profileImage).catch(console.error);
             }
+            
+            // Refresh user data in the background
+            fetch('/api/user/profile')
+              .then(res => res.json())
+              .then(userData => {
+                sessionStorage.setItem('cachedUserData', JSON.stringify(userData));
+                setUser(userData);
+              })
+              .catch(console.error);
+              
             return;
           } catch (e) {
             // If parsing fails, continue with API fetch
@@ -86,19 +96,31 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         // Only set loading if we don't have cached data
         setIsLoading(true);
         
-        // Fetch user data from API endpoint
-        const response = await fetch('/api/user/profile', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        // Fetch user data from API endpoint with retries
+        let retries = 3;
+        let userData;
+        
+        while (retries > 0) {
+          try {
+            const response = await fetch('/api/user/profile', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch user data');
+            if (!response.ok) {
+              throw new Error('Failed to fetch user data');
+            }
+
+            userData = await response.json();
+            break;
+          } catch (err) {
+            retries--;
+            if (retries === 0) throw err;
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         }
-
-        const userData = await response.json();
         
         // Cache the user data
         sessionStorage.setItem('cachedUserData', JSON.stringify(userData));
