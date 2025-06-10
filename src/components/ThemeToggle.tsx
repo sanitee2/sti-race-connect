@@ -1,60 +1,44 @@
 "use client";
 
-import { Moon, Sun, LaptopIcon } from "lucide-react";
-import { useTheme } from "@/providers/theme-provider";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 interface ThemeToggleProps {
   variant?: "default" | "outline" | "ghost";
   className?: string;
 }
 
-export function ThemeToggle({ variant = "outline", className }: ThemeToggleProps) {
+export function ThemeToggle({ variant = "default", className }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
-  const isWhiteText = className?.includes("text-white");
+  const [mounted, setMounted] = useState(false);
 
-  const toggleTheme = () => {
-    if (theme === 'light') {
-      setTheme('dark');
-    } else if (theme === 'dark') {
-      setTheme('system');
-    } else {
-      setTheme('light');
-    }
-  };
+  // Avoid hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <Button variant={variant} size="icon" className={className}>
+        <Sun className="h-4 w-4" />
+      </Button>
+    );
+  }
 
   return (
     <Button
       variant={variant}
       size="icon"
-      onClick={toggleTheme}
-      className={cn(
-        "rounded-full relative p-2 h-10 w-10",
-        variant === "ghost" ? "hover:bg-primary-foreground/10 dark:hover:bg-primary-foreground/20" : "",
-        variant === "outline" ? "bg-background dark:bg-card border-primary/20 dark:border-primary/30" : "",
-        variant === "default" ? "bg-primary text-primary-foreground" : "",
-        "shadow-sm hover:shadow", 
-        className
-      )}
-      title={`Current theme: ${theme}`}
+      className={className}
+      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
     >
-      <Sun className={cn(
-        "h-[1.2rem] w-[1.2rem] transition-all",
-        theme === 'light' ? 'opacity-100' : 'opacity-0 scale-0',
-        isWhiteText ? 'text-white' : 'text-primary'
-      )} />
-      <Moon className={cn(
-        "h-[1.2rem] w-[1.2rem] absolute transition-all",
-        theme === 'dark' ? 'opacity-100' : 'opacity-0 scale-0',
-        isWhiteText ? 'text-white' : 'text-primary'
-      )} />
-      <LaptopIcon className={cn(
-        "h-[1.2rem] w-[1.2rem] absolute transition-all",
-        theme === 'system' ? 'opacity-100' : 'opacity-0 scale-0',
-        isWhiteText ? 'text-white' : 'text-primary'
-      )} />
-      <span className="sr-only">Toggle theme</span>
+      {theme === "light" ? (
+        <Moon className="h-4 w-4" />
+      ) : (
+        <Sun className="h-4 w-4" />
+      )}
     </Button>
   );
 } 

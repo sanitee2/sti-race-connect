@@ -5,7 +5,7 @@ import { Logo } from '@/components/Logo';
 import { Menu, X, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { useTheme } from '@/providers/theme-provider';
+import { useTheme } from 'next-themes';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 export const Header = () => {

@@ -10,7 +10,7 @@ import { useUser } from '@/contexts/user-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { EnhancedAvatar } from '@/components/ui/enhanced-avatar';
-import { useTheme } from '@/providers/theme-provider';
+import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 

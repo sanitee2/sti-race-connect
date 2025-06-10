@@ -2,7 +2,7 @@
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { useTheme } from "@/providers/theme-provider";
+import { useTheme } from "next-themes";
 
 export default function PagesLayout({
   children,

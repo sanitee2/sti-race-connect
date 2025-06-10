@@ -1,7 +1,7 @@
 "use client";
 
 import React, { ReactNode } from 'react';
-import { useTheme } from '@/providers/theme-provider';
+import { useTheme } from 'next-themes';
 
 interface HeroSectionProps {
   title: string;

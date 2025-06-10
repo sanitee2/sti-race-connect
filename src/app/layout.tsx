@@ -5,6 +5,8 @@ import "./globals.css";
 import { NextAuthProvider } from '@/providers/session-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { FloatingTestButton } from "@/components/floating-test-button";
+import { Toaster } from 'sonner';
+import { cn } from "@/lib/utils";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -44,12 +46,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${montserrat.variable} ${satoshi.variable} ${inter.variable} font-sans antialiased`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={cn("min-h-screen bg-background font-sans antialiased", montserrat.variable, satoshi.variable, inter.variable)}>
         <NextAuthProvider>
-          <ThemeProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
             {children}
             <FloatingTestButton />
+            <Toaster position="top-right" />
           </ThemeProvider>
         </NextAuthProvider>
       </body>
