@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { Prisma, Role } from "@prisma/client";
+import { Prisma, Role, Gender, TshirtSize } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 export async function GET(request: Request) {
   try {
@@ -84,4 +85,95 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-} 
+}
+
+export async function POST(req: Request) {
+  try {
+    const formData = await req.formData();
+    
+    // Extract basic user data
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+    const role = formData.get('role') as Role;
+    const dateOfBirth = formData.get('dateOfBirth') as string;
+    const gender = formData.get('gender') as Gender;
+    const address = formData.get('address') as string;
+    
+    // Get profile picture if it exists
+    const profilePicture = formData.get('profilePicture') as File | null;
+    let profile_picture = '';
+    
+    if (profilePicture) {
+      // Handle profile picture upload here
+      // For now, we'll just store a placeholder URL
+      profile_picture = '/placeholder-profile.jpg';
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Prepare profile data based on role
+    const profile = {
+      dateOfBirth,
+      gender,
+      address,
+      // Runner specific fields
+      tshirtSize: formData.get('tshirtSize') as TshirtSize,
+      emergencyContactName: formData.get('emergencyContactName') as string,
+      emergencyContactPhone: formData.get('emergencyContactPhone') as string,
+      emergencyContactRelationship: formData.get('emergencyContactRelationship') as string,
+      // Marshal specific fields
+      organizationName: formData.get('organizationName') as string,
+      rolePosition: formData.get('rolePosition') as string,
+      socialMediaLinks: formData.get('socialMediaLinks') as string,
+      responsibilities: formData.get('responsibilities') as string,
+    };
+
+    // Create the user with the appropriate profile
+    const user = await prisma.users.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role,
+        profile_picture,
+        ...(role === 'Runner' ? {
+          runner_profile: {
+            create: {
+              date_of_birth: new Date(dateOfBirth),
+              gender,
+              address,
+              tshirt_size: profile.tshirtSize,
+              emergency_contact_name: profile.emergencyContactName,
+              emergency_contact_phone: profile.emergencyContactPhone,
+              emergency_contact_relationship: profile.emergencyContactRelationship,
+            }
+          }
+        } : role === 'Marshal' ? {
+          marshal_profile: {
+            create: {
+              date_of_birth: new Date(dateOfBirth),
+              gender,
+              address: address || null,
+              organization_name: profile.organizationName || "Not specified",
+              role_position: profile.rolePosition || "Member",
+              social_media_links: profile.socialMediaLinks || null,
+              responsibilities: profile.responsibilities,
+            }
+          }
+        } : {}),
+      },
+    });
+
+    return NextResponse.json({ message: 'User created successfully', user });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    return NextResponse.json(
+      { message: 'Error creating user', error: (error as Error).message },
+      { status: 500 }
+    );
+  }
+}
+
+// ... existing PATCH and DELETE methods ... 
