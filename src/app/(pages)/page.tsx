@@ -6,7 +6,7 @@ import { Logo } from '@/components/Logo';
 import { Calendar, Users, Trophy, Clock, MapPin, Star, ChevronRight, BarChart, ArrowRight, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { EventCard } from '@/components/EventCard';
-import { useTheme } from '@/providers/theme-provider';
+import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 
 export default function Home() {

@@ -119,7 +119,7 @@ export async function PUT(
       gallery_images,
     } = body;
 
-    // Check if event exists and user has permission to edit
+    // Check if event exists
     const existingEvent = await prisma.events.findUnique({
       where: { id },
       select: {
@@ -134,7 +134,14 @@ export async function PUT(
       );
     }
 
-    if (existingEvent.created_by !== session.user.id) {
+    // Get user role
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    // Check if user has permission to edit
+    if (user?.role !== 'Admin' && existingEvent.created_by !== session.user.id) {
       return NextResponse.json(
         { error: 'Permission denied' },
         { status: 403 }
@@ -255,7 +262,7 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Check if event exists and user has permission to delete
+    // Check if event exists
     const existingEvent = await prisma.events.findUnique({
       where: { id },
       select: {
@@ -271,7 +278,14 @@ export async function DELETE(
       );
     }
 
-    if (existingEvent.created_by !== session.user.id) {
+    // Get user role
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    // Check if user has permission to delete
+    if (user?.role !== 'Admin' && existingEvent.created_by !== session.user.id) {
       return NextResponse.json(
         { error: 'Permission denied' },
         { status: 403 }

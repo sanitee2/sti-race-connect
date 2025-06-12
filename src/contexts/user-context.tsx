@@ -8,6 +8,8 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  phone?: string;
+  address?: string;
   profileImage?: string;
   stats?: {
     upcomingEvents: number;
@@ -74,6 +76,16 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             if (parsedUser.profileImage) {
               preloadImage(parsedUser.profileImage).catch(console.error);
             }
+            
+            // Refresh user data in the background
+            fetch('/api/user/profile')
+              .then(res => res.json())
+              .then(userData => {
+                sessionStorage.setItem('cachedUserData', JSON.stringify(userData));
+                setUser(userData);
+              })
+              .catch(console.error);
+              
             return;
           } catch (e) {
             // If parsing fails, continue with API fetch
@@ -84,19 +96,31 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         // Only set loading if we don't have cached data
         setIsLoading(true);
         
-        // Fetch user data from API endpoint
-        const response = await fetch('/api/user/profile', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        // Fetch user data from API endpoint with retries
+        let retries = 3;
+        let userData;
+        
+        while (retries > 0) {
+          try {
+            const response = await fetch('/api/user/profile', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch user data');
+            if (!response.ok) {
+              throw new Error('Failed to fetch user data');
+            }
+
+            userData = await response.json();
+            break;
+          } catch (err) {
+            retries--;
+            if (retries === 0) throw err;
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         }
-
-        const userData = await response.json();
         
         // Cache the user data
         sessionStorage.setItem('cachedUserData', JSON.stringify(userData));
@@ -143,12 +167,17 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const updateUser = async (updatedUser: User) => {
     try {
       // Send updated user data to the API
-      const response = await fetch(`/api/user/${updatedUser.id}`, {
+      const response = await fetch('/api/profile', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updatedUser),
+        body: JSON.stringify({
+          name: updatedUser.name,
+          phone: updatedUser.phone,
+          address: updatedUser.address,
+          profileImage: updatedUser.profileImage,
+        }),
       });
 
       if (!response.ok) {
