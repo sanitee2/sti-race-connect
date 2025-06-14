@@ -34,7 +34,7 @@ export function UserNav() {
       case 'Admin':
         return '/admin/profile';
       case 'Marshal':
-        return '/dashboard/profile';
+        return '/profile';
       default:
         return '/profile';
     }
@@ -48,7 +48,7 @@ export function UserNav() {
       case 'Admin':
         return '/admin/settings';
       case 'Marshal':
-        return '/dashboard/settings';
+        return '/settings';
       default:
         return '/settings';
     }

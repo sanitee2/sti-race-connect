@@ -59,7 +59,7 @@ export const Header = () => {
         return [
           { name: 'Home', href: '/', icon: HomeIcon },
           { name: 'Dashboard', href: '/dashboard', icon: LineChartIcon },
-          { name: 'Events', href: '/dashboard/events', icon: CalendarIcon },
+          { name: 'Events', href: '/marshal-events', icon: CalendarIcon },
         ];
       
       default:
