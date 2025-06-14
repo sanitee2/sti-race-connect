@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { EventCard } from '@/components/EventCard';
 import { HeroSection } from '@/components/ui/HeroSection';
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { 
   Search, 
   Filter, 
@@ -109,12 +111,14 @@ const eventMonths = [...new Set(mockEvents.map(event => {
 }))];
 
 export default function EventsPage() {
+  const { data: session, status } = useSession();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [sortOption, setSortOption] = useState('date-asc');
+  const [isRegistering, setIsRegistering] = useState<string | null>(null);
   
   // Filter events based on search query and selected filters
   const filteredEvents = mockEvents
@@ -194,6 +198,25 @@ export default function EventsPage() {
     setSelectedLocations([]);
     setSelectedMonths([]);
     setSortOption('date-asc');
+  };
+
+  // Handle event registration for authenticated users
+  const handleRegister = async (eventId: string) => {
+    if (!session) {
+      toast.error("Please sign in to register for events");
+      return;
+    }
+
+    setIsRegistering(eventId);
+    try {
+      // TODO: Implement API call to register for event
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated API call
+      toast.success("Registration request submitted successfully");
+    } catch (error) {
+      toast.error("Failed to submit registration");
+    } finally {
+      setIsRegistering(null);
+    }
   };
 
   return (
@@ -479,6 +502,10 @@ export default function EventsPage() {
                 <EventCard 
                   key={event.id}
                   {...event}
+                  isAuthenticated={!!session}
+                  showRegistration={session?.user?.role === 'Runner'}
+                  onRegister={handleRegister}
+                  isRegistering={isRegistering === event.id}
                 />
               ))}
             </div>
