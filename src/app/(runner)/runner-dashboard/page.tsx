@@ -1,25 +1,24 @@
 "use client";
 
-import React from 'react';
-// Import the components and hooks you need for the runner dashboard
-// This is the runner dashboard page at /runner-dashboard
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+// Redirect component for the old runner-dashboard route
+// This redirects from /runner-dashboard to /runner/analytics
 
 export default function RunnerDashboardPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to the dashboard page which serves as the main dashboard
+    router.replace("/runner/dashboard");
+  }, [router]);
+
+  // Show a loading state while redirecting
   return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold mb-6">Runner Dashboard</h1>
-      
-      {/* Your runner dashboard content goes here */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-card rounded-lg p-6 shadow-sm">
-          <h2 className="text-lg font-medium mb-4">Upcoming Events</h2>
-          {/* Content for upcoming events */}
-        </div>
-        
-        <div className="bg-card rounded-lg p-6 shadow-sm">
-          <h2 className="text-lg font-medium mb-4">My Registrations</h2>
-          {/* Content for registrations */}
-        </div>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+        <p className="text-muted-foreground">Loading dashboard...</p>
       </div>
     </div>
   );

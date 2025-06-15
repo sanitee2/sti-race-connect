@@ -3,7 +3,8 @@
 import { ReactNode } from 'react';
 import Image from 'next/image';
 import { Logo } from '@/components/Logo';
-import { useTheme } from '@/providers/theme-provider';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { useTheme } from 'next-themes';
 
 interface AuthLayoutProps {
   children: ReactNode;

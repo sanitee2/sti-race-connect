@@ -57,7 +57,9 @@ export default function LoginPage() {
       const userData = await userResponse.json();
       
       // Redirect based on user role
-      if (userData.role === 'Marshal') {
+      if (userData.role === 'Admin') {
+        router.push('/admin/dashboard');
+      } else if (userData.role === 'Marshal') {
         router.push('/dashboard');
       } else if (userData.role === 'Runner') {
         router.push('/runner/dashboard');

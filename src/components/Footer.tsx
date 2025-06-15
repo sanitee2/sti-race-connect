@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
-import { useTheme } from '@/providers/theme-provider';
+import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 
 export const Footer = () => {
