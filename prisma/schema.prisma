@@ -227,6 +227,16 @@ model user_settings {
   @@map("user_settings")
 }
 
+model password_reset_tokens {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  email      String
+  token      String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
 enum Role {
   Guest
   Runner

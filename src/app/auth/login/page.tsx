@@ -125,7 +125,7 @@ export default function LoginPage() {
             </Label>
           </div>
 
-          <Link href="#" className="text-sm font-medium text-primary hover:text-primary/90">
+          <Link href="/auth/forgot-password" className="text-sm font-medium text-primary hover:text-primary/90">
             Forgot password?
           </Link>
         </div>
