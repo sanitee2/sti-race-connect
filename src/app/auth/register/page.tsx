@@ -300,7 +300,7 @@ export default function RegisterPage() {
       // Redirect to login page after successful registration
       setTimeout(() => {
         router.push('/auth/login');
-      }, 2000);
+      }, selectedRole === 'Marshal' ? 3000 : 2000);
       
     } catch (error) {
       console.error('Registration error:', error);
@@ -1088,7 +1088,11 @@ export default function RegisterPage() {
                 <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-0.5" />
                 <div>
                   <strong>Registration successful!</strong> 
-                  <p>Redirecting to login page...</p>
+                  {selectedRole === 'Marshal' ? (
+                    <p>Your marshal application has been submitted and is pending admin approval. You'll receive an email notification once your account is verified. Redirecting to login page...</p>
+                  ) : (
+                    <p>Redirecting to login page...</p>
+                  )}
                 </div>
               </div>
             )}

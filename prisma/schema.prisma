@@ -38,6 +38,9 @@ model users {
   phone_number          String?
   profile_picture       String? // URL to profile picture in Digital Ocean Spaces
   role                  Role                @default(Guest)
+  verification_status   VerificationStatus  @default(Approved) // Default approved for runners, pending for marshals
+  verified_at          DateTime?           // When the user was verified
+  verified_by          String?             @db.ObjectId // ID of admin who verified
   created_at            DateTime            @default(now())
   updated_at            DateTime            @updatedAt
   runner_profile        runner_profile?
@@ -282,6 +285,12 @@ model password_reset_tokens {
   created_at DateTime @default(now())
 
   @@map("password_reset_tokens")
+}
+
+enum VerificationStatus {
+  Pending
+  Approved
+  Rejected
 }
 
 enum Role {
