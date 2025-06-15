@@ -29,6 +29,7 @@ import { GalleryCard } from "./components/GalleryCard";
 import { SponsorsCard } from "./components/SponsorsCard";
 import { AboutCard } from "./components/AboutCard";
 import { StaffCard } from "./components/StaffCard";
+import { EventPageParams } from "@/types/pageParams";
 
 // Helper function to determine event status
 function getEventStatus(eventDate: Date): 'upcoming' | 'active' | 'completed' | 'cancelled' {
@@ -168,8 +169,10 @@ function mapStaffRole(role: any): StaffRole {
   }
 }
 
-export default async function MarshalEventDetailsPage({ params }: { params: { id: string } }) {
-  const event = await getEvent(params.id);
+export default async function MarshalEventDetailsPage({ params }: EventPageParams) {
+  // Resolve params promise
+  const resolvedParams = await params;
+  const event = await getEvent(resolvedParams.id);
   
   if (!event) {
     notFound();

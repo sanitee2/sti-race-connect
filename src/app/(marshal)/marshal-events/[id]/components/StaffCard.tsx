@@ -183,7 +183,7 @@ export function StaffCard({ event }: StaffCardProps) {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value={StaffRole.MARSHAL}>Marshal</SelectItem>
-                            <SelectItem value={StaffRole.COORDINATOR}>Coordinator</SelectItem>
+                            <SelectItem value={StaffRole.VOLUNTEER}>Volunteer</SelectItem>
                             <SelectItem value={StaffRole.OTHER}>Other</SelectItem>
                           </SelectContent>
                         </Select>
@@ -242,7 +242,7 @@ export function StaffCard({ event }: StaffCardProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={StaffRole.MARSHAL}>Marshal</SelectItem>
-                      <SelectItem value={StaffRole.COORDINATOR}>Coordinator</SelectItem>
+                      <SelectItem value={StaffRole.VOLUNTEER}>Volunteer</SelectItem>
                       <SelectItem value={StaffRole.OTHER}>Other</SelectItem>
                     </SelectContent>
                   </Select>
