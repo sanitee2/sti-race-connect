@@ -19,7 +19,7 @@ export async function PUT(
 
     const { id: eventId, categoryId } = await params;
     const body = await request.json();
-    const { name, description, targetAudience, image } = body;
+    const { name, description, targetAudience, image, gunStartTime } = body;
 
     // Validate required fields
     if (!name) {
@@ -77,6 +77,7 @@ export async function PUT(
         description: description || '',
         target_audience: targetAudience || '',
         category_image: image || null,
+        gun_start_time: gunStartTime ? new Date(gunStartTime) : null,
       },
       include: {
         participants: true,
@@ -91,6 +92,7 @@ export async function PUT(
       targetAudience: updatedCategory.target_audience,
       image: updatedCategory.category_image,
       participants: updatedCategory.participants.length,
+      gunStartTime: updatedCategory.gun_start_time,
     };
 
     return NextResponse.json(transformedCategory);
