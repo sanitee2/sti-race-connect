@@ -25,6 +25,7 @@ model organizations {
   creator      users                @relation("OrganizationCreator", fields: [created_by], references: [id])
   members      user_organization[]  @relation("OrganizationMembers")
   roles        organization_roles[] @relation("OrganizationRoles")
+  events       events[]             @relation("EventOrganization")
 }
 
 model users {
@@ -82,36 +83,56 @@ model marshal_profile {
 }
 
 model events {
-  id               String              @id @default(auto()) @map("_id") @db.ObjectId
-  event_name       String
-  event_date       DateTime
-  location         String
-  target_audience  String
-  description      String
-  cover_image      String? // URL to event cover image in Digital Ocean Spaces
-  gallery_images   String[] // Array of URLs to event gallery images in Digital Ocean Spaces
-  created_by       String              @db.ObjectId
-  created_at       DateTime            @default(now())
-  updated_at       DateTime            @updatedAt
-  creator          users               @relation("CreatedBy", fields: [created_by], references: [id])
-  event_categories event_to_category[]
-  event_staff      event_staff[]       @relation("EventStaff")
-  participants     participants[]      @relation("EventParticipants")
+  id                      String              @id @default(auto()) @map("_id") @db.ObjectId
+  event_name              String
+  event_date              DateTime
+  location                String
+  target_audience         String
+  description             String
+  cover_image             String? // URL to event cover image in Digital Ocean Spaces
+  gallery_images          String[] // Array of URLs to event gallery images in Digital Ocean Spaces
+  created_by              String              @db.ObjectId
+  created_at              DateTime            @default(now())
+  updated_at              DateTime            @updatedAt
+  has_slot_limit          Boolean             @default(false)
+  slot_limit              Int?
+  cut_off_time            DateTime? // General event cut-off time
+  gun_start_time          DateTime? // General event gun start time
+  registration_start_date DateTime? // Registration period start date
+  registration_end_date   DateTime? // Registration period end date
+  is_free_event           Boolean             @default(false)
+  price                   Float?
+  early_bird_price        Float?
+  early_bird_end_date     DateTime?
+  is_verified             Boolean             @default(false)
+  organization_id         String?             @db.ObjectId
+  organization            organizations?      @relation("EventOrganization", fields: [organization_id], references: [id])
+  creator                 users               @relation("CreatedBy", fields: [created_by], references: [id])
+  event_categories        event_to_category[]
+  event_staff             event_staff[]       @relation("EventStaff")
+  participants            participants[]      @relation("EventParticipants")
+  payment_methods         payment_methods[]
+  sponsors                event_sponsors[]    @relation("EventSponsors")
 }
 
 model event_categories {
-  id              String              @id @default(auto()) @map("_id") @db.ObjectId
-  category_name   String
-  description     String
-  target_audience String
-  category_image  String? // URL to category image in Digital Ocean Spaces
-  created_by      String              @db.ObjectId
-  created_at      DateTime            @default(now())
-  updated_at      DateTime            @updatedAt
-  creator         users               @relation("CategoryCreatedBy", fields: [created_by], references: [id])
-  events          event_to_category[]
-  participants    participants[]      @relation("CategoryParticipant")
-  results         results[]           @relation("CategoryResults")
+  id               String              @id @default(auto()) @map("_id") @db.ObjectId
+  category_name    String
+  description      String
+  target_audience  String
+  category_image   String? // URL to category image in Digital Ocean Spaces
+  has_slot_limit   Boolean             @default(false)
+  slot_limit       Int?
+  price            Float?
+  early_bird_price Float?
+  created_by       String              @db.ObjectId
+  created_at       DateTime            @default(now())
+  updated_at       DateTime            @updatedAt
+  gun_start_time   DateTime? // Optional gun start time for this category
+  creator          users               @relation("CategoryCreatedBy", fields: [created_by], references: [id])
+  events           event_to_category[]
+  participants     participants[]      @relation("CategoryParticipant")
+  results          results[]           @relation("CategoryResults")
 }
 
 model event_staff {
@@ -222,16 +243,42 @@ model role_assignment {
 }
 
 model user_settings {
-  id                  String   @id @default(uuid()) @map("_id")
-  user_id            String   @unique
-  notifications      Json     @default("{\"email\":true,\"push\":true,\"eventReminders\":true,\"updates\":false}")
-  appearance         Json     @default("{\"theme\":\"system\",\"fontSize\":\"normal\",\"reducedMotion\":false}")
-  security           Json     @default("{\"twoFactorEnabled\":false}")
-  created_at         DateTime @default(now())
-  updated_at         DateTime @updatedAt
-  user               users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid()) @map("_id")
+  user_id       String   @unique @db.ObjectId
+  notifications Json     @default("{\"email\":true,\"push\":true,\"eventReminders\":true,\"updates\":false}")
+  appearance    Json     @default("{\"theme\":\"system\",\"fontSize\":\"normal\",\"reducedMotion\":false}")
+  security      Json     @default("{\"twoFactorEnabled\":false}")
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  user          users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_settings")
+}
+
+model payment_methods {
+  id         String   @id @default(cuid()) @map("_id")
+  event_id   String   @db.ObjectId
+  name       String
+  type       String // 'account_number' or 'image'
+  value      String // account number or image URL
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  event      events   @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@map("payment_methods")
+}
+
+model event_sponsors {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  event_id   String   @db.ObjectId
+  name       String
+  logo_url   String? // URL to sponsor logo in Digital Ocean Spaces
+  website    String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  event      events   @relation("EventSponsors", fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@unique([event_id, name])
 }
 
 model password_reset_tokens {
