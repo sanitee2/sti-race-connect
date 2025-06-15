@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { EventRegistrationDialog } from '@/components/event-registration-dialog';
 
 interface EventCategory {
   id: string;
@@ -70,6 +71,9 @@ export default function EventDetailsPage() {
   const [registeredCategories, setRegisteredCategories] = useState<string[]>([]);
   const [registrationStatus, setRegistrationStatus] = useState<any>(null);
   const [registeringCategory, setRegisteringCategory] = useState<string | null>(null);
+  const [isRegistrationDialogOpen, setIsRegistrationDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<EventCategory | null>(null);
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (params.id) {
@@ -79,6 +83,44 @@ export default function EventDetailsPage() {
       }
     }
   }, [params.id, session]);
+
+  // Auto-refresh when user is registered to show status updates
+  useEffect(() => {
+    if (registrationStatus?.isRegistered && session?.user?.role === 'Runner') {
+      // Check if registration is still pending
+      const isPending = registrationStatus.registrations?.some(
+        (reg: any) => reg.registrationStatus === 'Pending' || reg.paymentStatus === 'Pending'
+      );
+      
+      if (isPending) {
+        // Refresh every 30 seconds when pending
+        const interval = setInterval(() => {
+          checkRegistrationStatus();
+          fetchEventDetails();
+        }, 30000);
+        
+        setRefreshInterval(interval);
+        
+        return () => {
+          if (interval) {
+            clearInterval(interval);
+          }
+        };
+      } else {
+        // Clear interval if no longer pending
+        if (refreshInterval) {
+          clearInterval(refreshInterval);
+          setRefreshInterval(null);
+        }
+      }
+    }
+    
+    return () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+    };
+  }, [registrationStatus, session]);
 
   const fetchEventDetails = async () => {
     try {
@@ -112,42 +154,26 @@ export default function EventDetailsPage() {
     }
   };
 
-  const handleRegisterForCategory = async (categoryId: string, categoryName: string) => {
+  const handleRegisterForCategory = (category: EventCategory) => {
     if (!session) {
       toast.error("Please sign in to register for events");
       return;
     }
 
-    if (registeredCategories.includes(categoryId)) {
-      toast.error("You are already registered for this category");
+    // Check if user is already registered for this event (any category)
+    if (registrationStatus && registrationStatus.isRegistered) {
+      setSelectedCategory(category);
+      setIsRegistrationDialogOpen(true);
       return;
     }
 
-    setRegisteringCategory(categoryId);
-    try {
-      const response = await fetch(`/api/events/${params.id}/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ categoryId }),
-      });
+    setSelectedCategory(category);
+    setIsRegistrationDialogOpen(true);
+  };
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to register');
-      }
-
-      const result = await response.json();
-      toast.success(`Successfully registered for ${categoryName}! Your registration is pending approval.`);
-      checkRegistrationStatus();
-      fetchEventDetails(); // Refresh to update participant count
-    } catch (error: any) {
-      console.error('Registration error:', error);
-      toast.error(error.message || "Failed to register for category");
-    } finally {
-      setRegisteringCategory(null);
-    }
+  const handleRegistrationSuccess = () => {
+    checkRegistrationStatus();
+    fetchEventDetails(); // Refresh to update participant count
   };
 
   const handleShare = async () => {
@@ -236,18 +262,52 @@ export default function EventDetailsPage() {
               <ArrowLeft className="w-4 h-4" />
               Back to Events
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleShare}
-              className="flex items-center gap-2 hover:bg-muted"
-            >
-              <Share2 className="w-4 h-4" />
-              Share
-            </Button>
+            <div className="flex items-center gap-2">
+              {registrationStatus?.isRegistered && session?.user?.role === 'Runner' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    checkRegistrationStatus();
+                    fetchEventDetails();
+                    toast.success('Registration status refreshed');
+                  }}
+                  className="flex items-center gap-2 hover:bg-muted"
+                >
+                  <Clock className="w-4 h-4" />
+                  Refresh Status
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleShare}
+                className="flex items-center gap-2 hover:bg-muted"
+              >
+                <Share2 className="w-4 h-4" />
+                Share
+              </Button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Auto-refresh notification for pending registrations */}
+      {registrationStatus?.isRegistered && session?.user?.role === 'Runner' && 
+       registrationStatus.registrations?.some((reg: any) => 
+         reg.registrationStatus === 'Pending' || reg.paymentStatus === 'Pending'
+       ) && (
+        <div className="bg-yellow-50 border-b border-yellow-200">
+          <div className="container mx-auto px-6 py-3">
+            <div className="flex items-center gap-3 text-yellow-800">
+              <Clock className="w-4 h-4 animate-pulse" />
+              <span className="text-sm">
+                Your registration is pending verification. This page will auto-refresh every 30 seconds to show status updates.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <div className="relative">
@@ -375,17 +435,57 @@ export default function EventDetailsPage() {
                         <p className="text-center text-gray-600 mb-4">
                           Register for specific categories in the Categories tab
                         </p>
-                        {registeredCategories.length > 0 && (
-                          <div className="text-center p-3 bg-green-50 rounded-lg">
-                            <div className="flex items-center justify-center mb-2">
-                              <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
-                              <span className="text-green-800 font-medium">
-                                Registered for {registeredCategories.length} categor{registeredCategories.length === 1 ? 'y' : 'ies'}
-                              </span>
-                            </div>
-                            <p className="text-green-700 text-sm">Status: Pending Approval</p>
-                          </div>
-                        )}
+                        {registeredCategories.length > 0 && (() => {
+                          const userRegistration = registrationStatus?.registrations?.[0];
+                          
+                          if (!userRegistration) return null;
+                          
+                          const isApproved = userRegistration.registrationStatus === 'Approved' && userRegistration.paymentStatus === 'Verified';
+                          const isRejected = userRegistration.registrationStatus === 'Rejected' || userRegistration.paymentStatus === 'Rejected';
+                          const isPending = userRegistration.registrationStatus === 'Pending' || userRegistration.paymentStatus === 'Pending';
+                          
+                          if (isApproved) {
+                            return (
+                              <div className="text-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="flex items-center justify-center mb-2">
+                                  <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                                  <span className="text-green-800 font-medium">
+                                    Registered for {registeredCategories.length} categor{registeredCategories.length === 1 ? 'y' : 'ies'}
+                                  </span>
+                                </div>
+                                <p className="text-green-700 text-sm">Status: Registration Approved</p>
+                              </div>
+                            );
+                          } else if (isRejected) {
+                            return (
+                              <div className="text-center p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <div className="flex items-center justify-center mb-2">
+                                  <XCircle className="w-5 h-5 text-red-600 mr-2" />
+                                  <span className="text-red-800 font-medium">
+                                    Registration Rejected
+                                  </span>
+                                </div>
+                                <p className="text-red-700 text-sm">
+                                  {userRegistration.rejectionReason || 'Please contact the organizer for details'}
+                                </p>
+                              </div>
+                            );
+                          } else if (isPending) {
+                            return (
+                              <div className="text-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <div className="flex items-center justify-center mb-2">
+                                  <Clock className="w-5 h-5 text-yellow-600 mr-2 animate-pulse" />
+                                  <span className="text-yellow-800 font-medium">
+                                    Registered for {registeredCategories.length} categor{registeredCategories.length === 1 ? 'y' : 'ies'}
+                                  </span>
+                                </div>
+                                <p className="text-yellow-700 text-sm">Status: Pending Verification</p>
+                              </div>
+                            );
+                          }
+                          
+                          return null;
+                        })()}
                       </div>
                     )}
                   </CardContent>
@@ -556,27 +656,65 @@ export default function EventDetailsPage() {
                         {/* Registration Button for Category */}
                         {session?.user?.role === 'Runner' && isUpcoming ? (
                           registeredCategories.includes(category.id) ? (
-                            <div className="text-center p-3 bg-green-50 rounded-lg">
-                              <div className="flex items-center justify-center mb-1">
-                                <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
-                                <span className="text-green-800 font-medium text-sm">Registered</span>
-                              </div>
-                              <p className="text-green-700 text-xs">Status: Pending Approval</p>
-                            </div>
+                            (() => {
+                              const userRegistration = registrationStatus?.registrations?.find(
+                                (reg: any) => reg.categoryId === category.id
+                              );
+                              
+                              if (!userRegistration) return null;
+                              
+                              const isApproved = userRegistration.registrationStatus === 'Approved' && userRegistration.paymentStatus === 'Verified';
+                              const isRejected = userRegistration.registrationStatus === 'Rejected' || userRegistration.paymentStatus === 'Rejected';
+                              const isPending = userRegistration.registrationStatus === 'Pending' || userRegistration.paymentStatus === 'Pending';
+                              
+                              if (isApproved) {
+                                return (
+                                  <div className="text-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                                    <div className="flex items-center justify-center mb-1">
+                                      <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
+                                      <span className="text-green-800 font-medium text-sm">Registration Approved</span>
+                                    </div>
+                                    <p className="text-green-700 text-xs">Payment verified • Registration confirmed</p>
+                                  </div>
+                                );
+                              } else if (isRejected) {
+                                return (
+                                  <div className="text-center p-3 bg-red-50 border border-red-200 rounded-lg">
+                                    <div className="flex items-center justify-center mb-1">
+                                      <XCircle className="w-4 h-4 text-red-600 mr-2" />
+                                      <span className="text-red-800 font-medium text-sm">Registration Rejected</span>
+                                    </div>
+                                    <p className="text-red-700 text-xs">
+                                      {userRegistration.rejectionReason || 'Please contact the organizer for details'}
+                                    </p>
+                                  </div>
+                                );
+                              } else if (isPending) {
+                                return (
+                                  <div className="text-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <div className="flex items-center justify-center mb-1">
+                                      <Clock className="w-4 h-4 text-yellow-600 mr-2 animate-pulse" />
+                                      <span className="text-yellow-800 font-medium text-sm">Pending Verification</span>
+                                    </div>
+                                    <p className="text-yellow-700 text-xs">
+                                      {userRegistration.paymentStatus === 'Pending' 
+                                        ? 'Payment receipt is being verified by the organizer'
+                                        : 'Registration is being processed'
+                                      }
+                                    </p>
+                                  </div>
+                                );
+                              }
+                              
+                              return null;
+                            })()
                           ) : (
                             <Button
-                              onClick={() => handleRegisterForCategory(category.id, category.name)}
+                              onClick={() => handleRegisterForCategory(category)}
                               disabled={registeringCategory === category.id}
                               className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 text-sm"
                             >
-                              {registeringCategory === category.id ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Registering...
-                                </>
-                              ) : (
-                                'Register for this Category'
-                              )}
+                              Register for this Category
                             </Button>
                           )
                         ) : !session ? (
@@ -694,6 +832,23 @@ export default function EventDetailsPage() {
 
         </Tabs>
       </div>
+
+      {/* Registration Dialog */}
+      {selectedCategory && event && (
+        <EventRegistrationDialog
+          isOpen={isRegistrationDialogOpen}
+          onClose={() => {
+            setIsRegistrationDialogOpen(false);
+            setSelectedCategory(null);
+          }}
+          eventId={event.id}
+          eventName={event.event_name}
+          category={selectedCategory}
+          onRegistrationSuccess={handleRegistrationSuccess}
+          isAlreadyRegistered={registrationStatus?.isRegistered || false}
+          registeredCategoryName={registrationStatus?.registrations?.[0]?.categoryName}
+        />
+      )}
     </div>
   );
 } 

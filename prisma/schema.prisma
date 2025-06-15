@@ -135,13 +135,17 @@ model participants {
   category_id         String             @db.ObjectId
   payment_status      PaymentStatus      @default(Pending)
   registration_status RegistrationStatus @default(Pending)
+  payment_receipt_url String?            // URL to GCash receipt screenshot
   registered_at       DateTime           @default(now())
+  verified_at         DateTime?          // When payment was verified by marshal
+  verified_by         String?            @db.ObjectId // Marshal who verified the payment
+  rejection_reason    String?            // Reason for rejection if applicable
   user                users              @relation("UserParticipant", fields: [user_id], references: [id], onDelete: Cascade)
   event               events             @relation("EventParticipants", fields: [event_id], references: [id])
   category            event_categories   @relation("CategoryParticipant", fields: [category_id], references: [id])
   results             results[]          @relation("ParticipantResults")
 
-  @@unique([user_id, event_id, category_id])
+  @@unique([user_id, event_id]) // Only one registration per user per event (across all categories)
 }
 
 model results {
