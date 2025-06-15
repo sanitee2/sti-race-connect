@@ -15,7 +15,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Hero Section - Modern Design */}
-      <section className="pt-32 md:pt-44 pb-24 md:pb-32 overflow-hidden relative bg-gradient-to-b from-primary to-primary/80 text-primary-foreground">
+      <section className="pt-12 md:pt-24 pb-24 md:pb-32 overflow-hidden relative bg-gradient-to-b from-primary to-primary/80 text-primary-foreground">
         {/* Background sporty elements */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
           <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full bg-secondary/20 blur-3xl"></div>
