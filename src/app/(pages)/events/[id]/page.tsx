@@ -72,18 +72,18 @@ export default function EventDetailsPage() {
   const [registeringCategory, setRegisteringCategory] = useState<string | null>(null);
 
   useEffect(() => {
-    if (params.id) {
+    if (params?.id) {
       fetchEventDetails();
       if (session) {
         checkRegistrationStatus();
       }
     }
-  }, [params.id, session]);
+  }, [params?.id, session]);
 
   const fetchEventDetails = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/public/events/${params.id}`);
+      const response = await fetch(`/api/public/events/${params?.id}`);
       if (!response.ok) {
         throw new Error('Event not found');
       }
@@ -100,7 +100,7 @@ export default function EventDetailsPage() {
 
   const checkRegistrationStatus = async () => {
     try {
-      const response = await fetch(`/api/events/${params.id}/register`);
+      const response = await fetch(`/api/events/${params?.id}/register`);
       if (response.ok) {
         const data = await response.json();
         const registeredCategoryIds = data.registrations?.map((reg: any) => reg.categoryId) || [];
@@ -125,7 +125,7 @@ export default function EventDetailsPage() {
 
     setRegisteringCategory(categoryId);
     try {
-      const response = await fetch(`/api/events/${params.id}/register`, {
+      const response = await fetch(`/api/events/${params?.id}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

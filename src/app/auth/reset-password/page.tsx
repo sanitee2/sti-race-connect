@@ -35,7 +35,7 @@ function ResetPasswordForm() {
   });
 
   useEffect(() => {
-    const tokenParam = searchParams.get('token');
+    const tokenParam = searchParams?.get('token');
     if (!tokenParam) {
       setError('Invalid or missing reset token. Please request a new password reset.');
       return;

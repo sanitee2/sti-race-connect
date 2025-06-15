@@ -19,12 +19,30 @@ export async function POST(
 
     const { id: eventId } = await params;
     const body = await request.json();
-    const { name, description, targetAudience, image } = body;
+    const { 
+      name, 
+      description, 
+      targetAudience, 
+      image,
+      hasSlotLimit,
+      slotLimit,
+      price,
+      earlyBirdPrice,
+      gunStartTime
+    } = body;
 
     // Validate required fields
     if (!name) {
       return NextResponse.json(
         { error: 'Category name is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate slot limit if enabled
+    if (hasSlotLimit && (!slotLimit || slotLimit <= 0)) {
+      return NextResponse.json(
+        { error: 'Valid slot limit is required when slot limit is enabled' },
         { status: 400 }
       );
     }
@@ -60,6 +78,11 @@ export async function POST(
         target_audience: targetAudience || '',
         category_image: image || null,
         created_by: session.user.id,
+        has_slot_limit: hasSlotLimit || false,
+        slot_limit: hasSlotLimit && slotLimit ? parseInt(slotLimit.toString()) : null,
+        price: price ? parseFloat(price.toString()) : null,
+        early_bird_price: earlyBirdPrice ? parseFloat(earlyBirdPrice.toString()) : null,
+        gun_start_time: gunStartTime ? new Date(gunStartTime) : null,
       },
     });
 
@@ -79,6 +102,11 @@ export async function POST(
       targetAudience: category.target_audience,
       participants: 0,
       image: category.category_image,
+      hasSlotLimit: category.has_slot_limit,
+      slotLimit: category.slot_limit,
+      price: category.price,
+      earlyBirdPrice: category.early_bird_price,
+      gunStartTime: category.gun_start_time,
     };
 
     return NextResponse.json(transformedCategory, { status: 201 });
@@ -132,6 +160,10 @@ export async function GET(
       targetAudience: eventCategory.category.target_audience,
       participants: eventCategory.category.participants.length,
       image: eventCategory.category.category_image,
+      hasSlotLimit: eventCategory.category.has_slot_limit,
+      slotLimit: eventCategory.category.slot_limit,
+      price: eventCategory.category.price,
+      earlyBirdPrice: eventCategory.category.early_bird_price,
     }));
 
     return NextResponse.json(transformedCategories);
