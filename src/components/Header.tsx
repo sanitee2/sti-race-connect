@@ -32,6 +32,7 @@ export const Header = () => {
         { name: 'Home', href: '/', icon: HomeIcon },
         { name: 'Features', href: '/#features', icon: null },
         { name: 'Events', href: '/events', icon: CalendarIcon },
+        { name: 'Rankings', href: '/rankings', icon: Medal },
         { name: 'About', href: '/#about', icon: null },
       ];
     }
