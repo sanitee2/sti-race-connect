@@ -272,7 +272,8 @@ model event_sponsors {
   event      events   @relation("EventSponsors", fields: [event_id], references: [id], onDelete: Cascade)
 
   @@unique([event_id, name])
-  
+}
+
 model password_reset_tokens {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
   email      String
