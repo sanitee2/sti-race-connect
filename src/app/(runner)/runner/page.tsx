@@ -2,10 +2,8 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-// Redirect component for the old runner-dashboard route
-// This redirects from /runner-dashboard to /runner/analytics
 
-export default function RunnerDashboardPage() {
+export default function RunnerPage() {
   const router = useRouter();
 
   useEffect(() => {

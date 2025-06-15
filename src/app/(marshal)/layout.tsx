@@ -314,8 +314,8 @@ function AuthCheck({ children }: { children: React.ReactNode }) {
     return null;
   }
   
-  // Optional: check for specific role
-  if (initialLoadDone && session?.user?.role !== 'Marshal' && session?.user?.role !== 'Admin') {
+  // Check for Marshal role only
+  if (initialLoadDone && session?.user?.role !== 'Marshal') {
     redirect('/auth/unauthorized');
     return null;
   }
