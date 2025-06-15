@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
-import { Menu, X, ChevronRight, HomeIcon, UserIcon, CalendarIcon, TrophyIcon, LineChartIcon } from 'lucide-react';
+import { Menu, X, ChevronRight, HomeIcon, UserIcon, CalendarIcon, TrophyIcon, LineChartIcon, Medal } from 'lucide-react';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -32,6 +32,7 @@ export const Header = () => {
         { name: 'Home', href: '/', icon: HomeIcon },
         { name: 'Features', href: '/#features', icon: null },
         { name: 'Events', href: '/events', icon: CalendarIcon },
+        { name: 'Rankings', href: '/rankings', icon: Medal },
         { name: 'About', href: '/#about', icon: null },
       ];
     }
@@ -44,6 +45,7 @@ export const Header = () => {
           { name: 'Home', href: '/', icon: HomeIcon },
           { name: 'Events', href: '/events', icon: CalendarIcon },
           { name: 'My Events', href: '/runner/my-events', icon: TrophyIcon },
+          { name: 'Rankings', href: '/runner/ranking', icon: Medal },
           { name: 'Dashboard', href: '/runner/dashboard', icon: LineChartIcon },
         ];
       
