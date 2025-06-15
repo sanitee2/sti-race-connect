@@ -62,7 +62,11 @@ export async function GET(
           include: {
             category: {
               include: {
-                participants: true,
+                participants: {
+                  where: {
+                    registration_status: 'Approved', // Only count approved participants
+                  },
+                },
               },
             },
           },
