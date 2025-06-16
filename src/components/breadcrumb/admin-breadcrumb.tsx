@@ -18,7 +18,7 @@ const routeNameMap: Record<string, string> = {
 
 export default function AdminBreadcrumb() {
   const pathname = usePathname();
-  const segments = pathname.split('/').filter(Boolean);
+  const segments = pathname?.split('/').filter(Boolean) || [];
 
   return (
     <nav aria-label="Breadcrumb" className="flex items-center space-x-1 text-sm">

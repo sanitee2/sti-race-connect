@@ -273,16 +273,43 @@ function MarshalLayoutInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Session check component to redirect unauthenticated users
+// Session check component to redirect unauthenticated users and unverified marshals
 function AuthCheck({ children }: { children: React.ReactNode }) {
   const { status, data: session } = useSession();
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+  const [verificationLoading, setVerificationLoading] = useState(true);
   
   useEffect(() => {
     if (status !== 'loading') {
       setInitialLoadDone(true);
     }
   }, [status]);
+
+  // Check verification status for marshals
+  useEffect(() => {
+    async function checkVerificationStatus() {
+      if (initialLoadDone && session?.user?.role === 'Marshal' && session?.user?.id) {
+        try {
+          const response = await fetch(`/api/user/verification-status?userId=${session.user.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            setVerificationStatus(data.verification_status);
+          } else {
+            console.error('Failed to fetch verification status');
+          }
+        } catch (error) {
+          console.error('Error fetching verification status:', error);
+        } finally {
+          setVerificationLoading(false);
+        }
+      } else {
+        setVerificationLoading(false);
+      }
+    }
+
+    checkVerificationStatus();
+  }, [initialLoadDone, session]);
 
   // Prevent visibility change from triggering re-authentication
   useEffect(() => {
@@ -299,14 +326,8 @@ function AuthCheck({ children }: { children: React.ReactNode }) {
   }, []);
   
   if (status === 'loading' && !initialLoadDone) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    // Return null instead of loading spinner to allow immediate page render
+    return null;
   }
   
   if (status === 'unauthenticated' && initialLoadDone) {
@@ -314,10 +335,90 @@ function AuthCheck({ children }: { children: React.ReactNode }) {
     return null;
   }
   
-  // Optional: check for specific role
-  if (initialLoadDone && session?.user?.role !== 'Marshal' && session?.user?.role !== 'Admin') {
+  // Check for Marshal role only
+  if (initialLoadDone && session?.user?.role !== 'Marshal') {
     redirect('/auth/unauthorized');
     return null;
+  }
+
+  // Show loading while checking verification status for marshals
+  if (session?.user?.role === 'Marshal' && verificationLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+          <p className="text-muted-foreground">Checking verification status...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check marshal verification status
+  if (session?.user?.role === 'Marshal' && verificationStatus) {
+    if (verificationStatus === 'Pending') {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="max-w-md text-center p-8 bg-card border border-border rounded-lg shadow-lg">
+            <div className="flex justify-center mb-4">
+              <div className="h-16 w-16 bg-yellow-100 rounded-full flex items-center justify-center">
+                <svg className="h-8 w-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <h1 className="text-2xl font-semibold text-foreground mb-2">Verification Pending</h1>
+            <p className="text-muted-foreground mb-6">
+              Your marshal application is currently under review by our administrators. 
+              You'll receive an email notification once your account has been verified.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              If you have any questions, please contact support.
+            </p>
+            <div className="mt-6">
+              <button 
+                onClick={() => window.location.href = '/auth/login'}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Back to Login
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    } else if (verificationStatus === 'Rejected') {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="max-w-md text-center p-8 bg-card border border-border rounded-lg shadow-lg">
+            <div className="flex justify-center mb-4">
+              <div className="h-16 w-16 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+            </div>
+            <h1 className="text-2xl font-semibold text-foreground mb-2">Application Rejected</h1>
+            <p className="text-muted-foreground mb-6">
+              Unfortunately, your marshal application has been rejected. 
+              Please contact our support team if you believe this was an error or if you'd like to reapply.
+            </p>
+            <div className="mt-6 space-x-3">
+              <button 
+                onClick={() => window.location.href = '/auth/login'}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Back to Login
+              </button>
+              <button 
+                onClick={() => window.location.href = 'mailto:support@stiraceconnect.com'}
+                className="px-4 py-2 border border-border text-foreground rounded-md hover:bg-muted transition-colors"
+              >
+                Contact Support
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
   }
   
   return <>{children}</>;

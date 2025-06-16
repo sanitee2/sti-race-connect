@@ -164,7 +164,7 @@ export async function POST(req: Request) {
     } else {
       const marshalProfile = validatedData.profile as z.infer<typeof marshalProfileSchema>;
       
-      // Create marshal
+      // Create marshal with pending verification status
       const user = await prisma.users.create({
         data: {
           name: validatedData.name,
@@ -173,6 +173,7 @@ export async function POST(req: Request) {
           phone_number: validatedData.phoneNumber,
           profile_picture: validatedData.profile_picture,
           role: validatedData.role,
+          verification_status: 'Pending', // Marshals need admin approval
           marshal_profile: {
             create: {
               date_of_birth: marshalProfile.dateOfBirth,
@@ -242,7 +243,7 @@ export async function POST(req: Request) {
       delete (user as any).password;
       
       return NextResponse.json(
-        { message: 'Marshal registered successfully', user },
+        { message: 'Marshal registration submitted successfully. Your account is pending admin approval.', user },
         { status: 201 }
       );
     }

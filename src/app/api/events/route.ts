@@ -2,6 +2,39 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { StaffRole } from '@prisma/client';
+
+// Helper function to map frontend StaffRole enum to Prisma StaffRole enum
+function mapStaffRoleToPrisma(frontendRole: string): StaffRole {
+  switch (frontendRole) {
+    case 'MARSHAL':
+      return StaffRole.EventMarshal;
+    case 'RACE_DIRECTOR':
+      return StaffRole.Coordinator;
+    case 'VOLUNTEER':
+      return StaffRole.SubMarshal;
+    case 'MEDICAL_STAFF':
+      return StaffRole.SubMarshal;
+    case 'SECURITY':
+      return StaffRole.SubMarshal;
+    case 'OTHER':
+    default:
+      return StaffRole.SubMarshal;
+  }
+}
+
+// Helper function to map Prisma StaffRole enum to frontend StaffRole enum
+function mapStaffRoleFromPrisma(prismaRole: StaffRole): string {
+  switch (prismaRole) {
+    case StaffRole.EventMarshal:
+      return 'MARSHAL';
+    case StaffRole.Coordinator:
+      return 'RACE_DIRECTOR';
+    case StaffRole.SubMarshal:
+    default:
+      return 'OTHER';
+  }
+}
 
 // Helper function to determine event status
 function getEventStatus(eventDate: Date): string {
@@ -31,8 +64,45 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get user role to determine filtering
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Build the where clause based on user role
+    let whereClause: any = {};
+    
+    // If user is not an Admin, filter events to only show:
+    // 1. Events they created
+    // 2. Events they are staff members of
+    if (user.role !== 'Admin') {
+      whereClause = {
+        OR: [
+          // Events created by the user
+          { created_by: session.user.id },
+          // Events where the user is a staff member
+          {
+            event_staff: {
+              some: {
+                user_id: session.user.id
+              }
+            }
+          }
+        ]
+      };
+    }
+
     // Fetch events with their categories and related data
     const events = await prisma.events.findMany({
+      where: whereClause,
       include: {
         creator: {
           select: {
@@ -82,6 +152,12 @@ export async function GET(request: NextRequest) {
       status: getEventStatus(event.event_date),
       target_audience: event.target_audience,
       created_by: event.creator.name,
+      has_slot_limit: event.has_slot_limit,
+      slot_limit: event.slot_limit,
+      cutOffTime: event.cut_off_time,
+      gunStartTime: event.gun_start_time,
+      registrationStartDate: event.registration_start_date,
+      registrationEndDate: event.registration_end_date,
       participants: event.event_categories.reduce(
         (total, eventCategory) => total + eventCategory.category.participants.length,
         0
@@ -93,6 +169,8 @@ export async function GET(request: NextRequest) {
         targetAudience: eventCategory.category.target_audience,
         participants: eventCategory.category.participants.length,
         image: eventCategory.category.category_image,
+        has_slot_limit: eventCategory.category.has_slot_limit,
+        slot_limit: eventCategory.category.slot_limit
       })),
       cover_image: event.cover_image,
       gallery_images: event.gallery_images,
@@ -129,6 +207,20 @@ export async function POST(request: NextRequest) {
       target_audience,
       cover_image,
       gallery_images,
+      isFreeEvent,
+      price,
+      earlyBirdPrice,
+      earlyBirdEndDate,
+      hasSlotLimit,
+      slotLimit,
+      cutOffTime,
+      gunStartTime,
+      paymentMethods,
+      organization_id,
+      event_staff,
+      sponsors,
+      registrationStartDate,
+      registrationEndDate
     } = body;
 
     // Validate required fields
@@ -157,35 +249,136 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const event = await prisma.events.create({
-      data: {
-        event_name: name,
-        description: description || '',
-        event_date: eventDateTime,
-        location,
-        target_audience: target_audience || '',
-        created_by: session.user.id,
-        cover_image: cover_image || null,
-        gallery_images: gallery_images || [],
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+    // Parse early bird end date if provided
+    let earlyBirdEndDateTime: Date | undefined;
+    if (earlyBirdEndDate) {
+      earlyBirdEndDateTime = new Date(earlyBirdEndDate);
+      if (isNaN(earlyBirdEndDateTime.getTime())) {
+        return NextResponse.json(
+          { error: 'Invalid early bird end date format' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Parse registration dates if provided
+    let registrationStartDateTime: Date | undefined;
+    let registrationEndDateTime: Date | undefined;
+    
+    if (registrationStartDate) {
+      registrationStartDateTime = new Date(registrationStartDate);
+      if (isNaN(registrationStartDateTime.getTime())) {
+        return NextResponse.json(
+          { error: 'Invalid registration start date format' },
+          { status: 400 }
+        );
+      }
+    }
+    
+    if (registrationEndDate) {
+      registrationEndDateTime = new Date(registrationEndDate);
+      if (isNaN(registrationEndDateTime.getTime())) {
+        return NextResponse.json(
+          { error: 'Invalid registration end date format' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Create event with transaction to ensure all related data is created
+    const event = await prisma.$transaction(async (tx) => {
+      // Create the event first
+      const createdEvent = await tx.events.create({
+        data: {
+          event_name: name,
+          description: description || '',
+          event_date: eventDateTime,
+          location,
+          target_audience: target_audience || '',
+          created_by: session.user.id,
+          cover_image: cover_image || null,
+          gallery_images: gallery_images || [],
+          is_free_event: isFreeEvent || false,
+          price: price ? parseFloat(price) : null,
+          early_bird_price: earlyBirdPrice ? parseFloat(earlyBirdPrice) : null,
+          early_bird_end_date: earlyBirdEndDateTime || null,
+          has_slot_limit: hasSlotLimit || false,
+          slot_limit: slotLimit ? parseInt(slotLimit) : null,
+          cut_off_time: cutOffTime ? new Date(cutOffTime) : null,
+          gun_start_time: gunStartTime ? new Date(gunStartTime) : null,
+          registration_start_date: registrationStartDateTime || null,
+          registration_end_date: registrationEndDateTime || null,
+          organization_id: organization_id || null,
         },
-        event_categories: {
-          include: {
-            category: {
-              include: {
-                participants: true,
+        include: {
+          creator: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          event_categories: {
+            include: {
+              category: {
+                include: {
+                  participants: true,
+                },
               },
             },
           },
         },
-      },
+      });
+
+      // Create payment methods if provided and event is not free
+      if (!isFreeEvent && paymentMethods && paymentMethods.length > 0) {
+        await Promise.all(
+          paymentMethods.map((method: any) =>
+            tx.payment_methods.create({
+              data: {
+                event_id: createdEvent.id,
+                name: method.name,
+                type: method.type,
+                value: method.value,
+              },
+            })
+          )
+        );
+      }
+
+      // Create event staff if provided
+      if (event_staff && event_staff.length > 0) {
+        await Promise.all(
+          event_staff.map((staff: any) =>
+            tx.event_staff.create({
+              data: {
+                event_id: createdEvent.id,
+                user_id: staff.user_id,
+                role_in_event: mapStaffRoleToPrisma(staff.role_in_event),
+                responsibilities: staff.responsibilities,
+              },
+            })
+          )
+        );
+      }
+
+      // Create sponsors if provided
+      if (sponsors && sponsors.length > 0) {
+        await Promise.all(
+          sponsors.map((sponsor: any) =>
+            tx.event_sponsors.create({
+              data: {
+                event_id: createdEvent.id,
+                name: sponsor.name,
+                logo_url: sponsor.logo_url,
+                website: sponsor.website,
+              },
+            })
+          )
+        );
+      }
+
+      return createdEvent;
     });
 
     // Transform the response to match frontend expectations
@@ -203,10 +396,23 @@ export async function POST(request: NextRequest) {
       status: getEventStatus(event.event_date),
       target_audience: event.target_audience,
       created_by: event.creator.name,
+      has_slot_limit: event.has_slot_limit,
+      slot_limit: event.slot_limit,
+      cutOffTime: event.cut_off_time,
+      gunStartTime: event.gun_start_time,
+      registrationStartDate: event.registration_start_date,
+      registrationEndDate: event.registration_end_date,
       participants: 0,
       categories: [],
       cover_image: event.cover_image,
       gallery_images: event.gallery_images,
+      isFreeEvent: event.is_free_event,
+      price: event.price,
+      earlyBirdPrice: event.early_bird_price,
+      earlyBirdEndDate: event.early_bird_end_date,
+      organization_id: event.organization_id,
+      event_staff: [],
+      sponsors: []
     };
 
     return NextResponse.json(transformedEvent, { status: 201 });

@@ -28,8 +28,13 @@ export async function GET(req: NextRequest) {
         profile_picture: true,
         marshal_profile: {
           select: {
+            date_of_birth: true,
+            gender: true,
+            address: true,
             organization_name: true,
-            role_position: true
+            role_position: true,
+            social_media_links: true,
+            responsibilities: true
           }
         },
         runner_profile: true
@@ -91,6 +96,9 @@ export async function GET(req: NextRequest) {
       phone: user.phone_number,
       address: user.address,
       profileImage: user.profile_picture,
+      // Include profile data based on role
+      runnerProfile: user.runner_profile,
+      marshalProfile: user.marshal_profile,
       stats: {
         upcomingEvents: upcomingEventsCount,
         totalParticipants: participantsCount,
