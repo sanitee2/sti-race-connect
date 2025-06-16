@@ -6,10 +6,15 @@ export default withAuth(
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
-    // Handle root route redirects based on user role (only for authenticated users)
-    if (pathname === '/' && token) {
-      const userRole = token.role as string;
+    // Handle root route - unauthenticated users go to default home
+    if (pathname === '/') {
+      if (!token) {
+        // No logged-in user, allow access to default home page
+        return NextResponse.next();
+      }
       
+      // Authenticated users get redirected based on their role
+      const userRole = token.role as string;
       switch (userRole) {
         case 'Marshal':
           return NextResponse.redirect(new URL('/dashboard', req.url));
