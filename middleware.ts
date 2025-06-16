@@ -6,15 +6,10 @@ export default withAuth(
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
-    // If user is not authenticated, let Next-Auth handle it
-    if (!token) {
-      return NextResponse.next();
-    }
-
-    const userRole = token.role as string;
-
-    // Handle root route redirects based on user role
-    if (pathname === '/') {
+    // Handle root route redirects based on user role (only for authenticated users)
+    if (pathname === '/' && token) {
+      const userRole = token.role as string;
+      
       switch (userRole) {
         case 'Marshal':
           return NextResponse.redirect(new URL('/dashboard', req.url));
@@ -23,10 +18,17 @@ export default withAuth(
         case 'Runner':
           return NextResponse.redirect(new URL('/runner-dashboard', req.url));
         default:
-          // For any other role or undefined role, redirect to a default page
-          return NextResponse.redirect(new URL('/', req.url));
+          // For any other role or undefined role, let them stay on home page
+          return NextResponse.next();
       }
     }
+
+    // If user is not authenticated and trying to access protected routes, let Next-Auth handle it
+    if (!token) {
+      return NextResponse.next();
+    }
+
+    const userRole = token.role as string;
 
     // Define role-based route access rules
     const roleRoutes = {
@@ -81,3 +83,4 @@ export const config = {
     '/runner-dashboard/:path*'
   ]
 }; 
+
