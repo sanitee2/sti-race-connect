@@ -24,7 +24,7 @@ export default withAuth(
           return NextResponse.redirect(new URL('/runner-dashboard', req.url));
         default:
           // For any other role or undefined role, redirect to a default page
-          return NextResponse.redirect(new URL('/dashboard', req.url));
+          return NextResponse.redirect(new URL('/', req.url));
       }
     }
 
