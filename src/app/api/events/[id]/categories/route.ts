@@ -53,6 +53,11 @@ export async function POST(
       select: {
         created_by: true,
         event_name: true,
+        event_staff: {
+          select: {
+            user_id: true,
+          },
+        },
       },
     });
 
@@ -63,7 +68,20 @@ export async function POST(
       );
     }
 
-    if (event.created_by !== session.user.id) {
+    // Get user role
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    // Check if user has permission to add categories
+    // Admins can add categories to all events
+    // Event creators can add categories to their events
+    // Staff members can add categories to events they are assigned to
+    const isCreator = event.created_by === session.user.id;
+    const isStaffMember = event.event_staff.some(staff => staff.user_id === session.user.id);
+    
+    if (user?.role !== 'Admin' && !isCreator && !isStaffMember) {
       return NextResponse.json(
         { error: 'Permission denied' },
         { status: 403 }
@@ -125,18 +143,54 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { id: eventId } = await params;
 
-    // Check if event exists
+    // Check if event exists and user has permission
     const event = await prisma.events.findUnique({
       where: { id: eventId },
-      select: { id: true },
+      select: {
+        id: true,
+        created_by: true,
+        event_staff: {
+          select: {
+            user_id: true,
+          },
+        },
+      },
     });
 
     if (!event) {
       return NextResponse.json(
         { error: 'Event not found' },
         { status: 404 }
+      );
+    }
+
+    // Get user role
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    // Check if user has permission to view categories
+    // Admins can view categories for all events
+    // Event creators can view categories for their events
+    // Staff members can view categories for events they are assigned to
+    const isCreator = event.created_by === session.user.id;
+    const isStaffMember = event.event_staff.some(staff => staff.user_id === session.user.id);
+    
+    if (user?.role !== 'Admin' && !isCreator && !isStaffMember) {
+      return NextResponse.json(
+        { error: 'Permission denied' },
+        { status: 403 }
       );
     }
 

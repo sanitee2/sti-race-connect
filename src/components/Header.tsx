@@ -42,11 +42,10 @@ export const Header = () => {
     switch (role) {
       case 'Runner':
         return [
-          { name: 'Home', href: '/', icon: HomeIcon },
+          { name: 'Dashboard', href: '/runner/dashboard', icon: LineChartIcon },
           { name: 'Events', href: '/events', icon: CalendarIcon },
           { name: 'My Events', href: '/runner/my-events', icon: TrophyIcon },
           { name: 'Rankings', href: '/runner/ranking', icon: Medal },
-          { name: 'Dashboard', href: '/runner/dashboard', icon: LineChartIcon },
         ];
       
       case 'Admin':

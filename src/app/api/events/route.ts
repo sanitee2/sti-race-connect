@@ -2,6 +2,39 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { StaffRole } from '@prisma/client';
+
+// Helper function to map frontend StaffRole enum to Prisma StaffRole enum
+function mapStaffRoleToPrisma(frontendRole: string): StaffRole {
+  switch (frontendRole) {
+    case 'MARSHAL':
+      return StaffRole.EventMarshal;
+    case 'RACE_DIRECTOR':
+      return StaffRole.Coordinator;
+    case 'VOLUNTEER':
+      return StaffRole.SubMarshal;
+    case 'MEDICAL_STAFF':
+      return StaffRole.SubMarshal;
+    case 'SECURITY':
+      return StaffRole.SubMarshal;
+    case 'OTHER':
+    default:
+      return StaffRole.SubMarshal;
+  }
+}
+
+// Helper function to map Prisma StaffRole enum to frontend StaffRole enum
+function mapStaffRoleFromPrisma(prismaRole: StaffRole): string {
+  switch (prismaRole) {
+    case StaffRole.EventMarshal:
+      return 'MARSHAL';
+    case StaffRole.Coordinator:
+      return 'RACE_DIRECTOR';
+    case StaffRole.SubMarshal:
+    default:
+      return 'OTHER';
+  }
+}
 
 // Helper function to determine event status
 function getEventStatus(eventDate: Date): string {
@@ -31,8 +64,45 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get user role to determine filtering
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Build the where clause based on user role
+    let whereClause: any = {};
+    
+    // If user is not an Admin, filter events to only show:
+    // 1. Events they created
+    // 2. Events they are staff members of
+    if (user.role !== 'Admin') {
+      whereClause = {
+        OR: [
+          // Events created by the user
+          { created_by: session.user.id },
+          // Events where the user is a staff member
+          {
+            event_staff: {
+              some: {
+                user_id: session.user.id
+              }
+            }
+          }
+        ]
+      };
+    }
+
     // Fetch events with their categories and related data
     const events = await prisma.events.findMany({
+      where: whereClause,
       include: {
         creator: {
           select: {
@@ -284,7 +354,7 @@ export async function POST(request: NextRequest) {
               data: {
                 event_id: createdEvent.id,
                 user_id: staff.user_id,
-                role_in_event: staff.role_in_event,
+                role_in_event: mapStaffRoleToPrisma(staff.role_in_event),
                 responsibilities: staff.responsibilities,
               },
             })

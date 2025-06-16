@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import React from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
 export interface EnhancedAvatarProps {
   src?: string | null;
@@ -18,9 +19,6 @@ export function EnhancedAvatar({
   className,
   size = 'md',
 }: EnhancedAvatarProps) {
-  const [imgError, setImgError] = useState(false);
-  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
-  
   // Size classes
   const sizeClasses = {
     sm: 'h-8 w-8',
@@ -29,45 +27,20 @@ export function EnhancedAvatar({
     xl: 'h-24 w-24',
   };
   
-  useEffect(() => {
-    // Reset error state when src changes
-    setImgError(false);
-    
-    if (src) {
-      // Try to get cached image from localStorage
-      const cacheKey = `avatar-cache-${src}`;
-      const cached = localStorage.getItem(cacheKey);
-      
-      if (cached) {
-        // Use cached version if available
-        setLoadedSrc(cached);
-      } else {
-        // Otherwise use the original source
-        setLoadedSrc(src);
-        
-        // We could implement blob caching here, but for avatars
-        // it's often better to just let the browser cache handle it
-        // as the images are small and frequently accessed
-      }
-    } else {
-      setLoadedSrc(null);
-    }
-  }, [src]);
+  // Generate fallback text from alt or provided fallback
+  const fallbackText = fallback || alt.charAt(0).toUpperCase();
   
   return (
-    <Avatar className={`${sizeClasses[size]} ${className || ''}`}>
-      {!imgError && loadedSrc && (
-        <img
-          src={loadedSrc}
+    <Avatar className={cn(sizeClasses[size], className)}>
+      {src && (
+        <AvatarImage 
+          src={src} 
           alt={alt}
-          className="h-full w-full object-cover"
-          onError={() => setImgError(true)}
-          loading="eager" // Load eagerly for visible avatars
-          fetchPriority="high" // High priority for visible avatars
+          className="object-cover"
         />
       )}
-      <AvatarFallback className="bg-primary/10 text-primary">
-        {fallback || alt.charAt(0).toUpperCase()}
+      <AvatarFallback className="bg-primary/10 text-primary font-medium">
+        {fallbackText}
       </AvatarFallback>
     </Avatar>
   );

@@ -34,6 +34,11 @@ export async function PUT(
       where: { id: eventId },
       select: {
         created_by: true,
+        event_staff: {
+          select: {
+            user_id: true,
+          },
+        },
       },
     });
 
@@ -44,7 +49,20 @@ export async function PUT(
       );
     }
 
-    if (event.created_by !== session.user.id) {
+    // Get user role
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    // Check if user has permission to update categories
+    // Admins can update categories for all events
+    // Event creators can update categories for their events
+    // Staff members can update categories for events they are assigned to
+    const isCreator = event.created_by === session.user.id;
+    const isStaffMember = event.event_staff.some(staff => staff.user_id === session.user.id);
+    
+    if (user?.role !== 'Admin' && !isCreator && !isStaffMember) {
       return NextResponse.json(
         { error: 'Permission denied' },
         { status: 403 }
@@ -126,6 +144,11 @@ export async function DELETE(
       where: { id: eventId },
       select: {
         created_by: true,
+        event_staff: {
+          select: {
+            user_id: true,
+          },
+        },
       },
     });
 
@@ -136,7 +159,20 @@ export async function DELETE(
       );
     }
 
-    if (event.created_by !== session.user.id) {
+    // Get user role
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    // Check if user has permission to delete categories
+    // Admins can delete categories for all events
+    // Event creators can delete categories for their events
+    // Staff members can delete categories for events they are assigned to
+    const isCreator = event.created_by === session.user.id;
+    const isStaffMember = event.event_staff.some(staff => staff.user_id === session.user.id);
+    
+    if (user?.role !== 'Admin' && !isCreator && !isStaffMember) {
       return NextResponse.json(
         { error: 'Permission denied' },
         { status: 403 }

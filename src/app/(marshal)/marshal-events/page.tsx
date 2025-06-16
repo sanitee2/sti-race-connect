@@ -173,25 +173,26 @@ export default function EventsPage() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: eventData.name,
+        event_name: eventData.name, // Map to event_name in schema
         description: eventData.description,
-        date: eventData.date ? format(eventData.date, 'yyyy-MM-dd') : '',
+        event_date: eventData.date ? format(eventData.date, 'yyyy-MM-dd') : '', // Map to event_date in schema
         time: eventData.time ? format(eventData.time, 'HH:mm') : '',
         location: eventData.location,
         target_audience: eventData.target_audience,
         cover_image: eventData.cover_image,
         gallery_images: eventData.gallery_images,
-        isFreeEvent: eventData.isFreeEvent,
+        is_free_event: eventData.isFreeEvent, // Map to is_free_event in schema
         price: eventData.price,
-        earlyBirdPrice: eventData.earlyBirdPrice,
-        earlyBirdEndDate: eventData.earlyBirdEndDate ? format(eventData.earlyBirdEndDate, 'yyyy-MM-dd') : undefined,
+        early_bird_price: eventData.earlyBirdPrice, // Map to early_bird_price in schema
+        early_bird_end_date: eventData.earlyBirdEndDate ? format(eventData.earlyBirdEndDate, 'yyyy-MM-dd') : undefined, // Map to early_bird_end_date in schema
         paymentMethods: eventData.paymentMethods,
-        hasSlotLimit: eventData.hasSlotLimit,
-        slotLimit: eventData.slotLimit,
+        has_slot_limit: eventData.hasSlotLimit, // Map to has_slot_limit in schema
+        slot_limit: eventData.slotLimit,
+        organization_id: eventData.organization_id,
         event_staff: eventData.event_staff,
         sponsors: eventData.sponsors,
-        registrationStartDate: eventData.registrationStartDate ? format(eventData.registrationStartDate, 'yyyy-MM-dd') : undefined,
-        registrationEndDate: eventData.registrationEndDate ? format(eventData.registrationEndDate, 'yyyy-MM-dd') : undefined
+        registration_start_date: eventData.registrationStartDate ? format(eventData.registrationStartDate, 'yyyy-MM-dd') : undefined, // Map to registration_start_date in schema
+        registration_end_date: eventData.registrationEndDate ? format(eventData.registrationEndDate, 'yyyy-MM-dd') : undefined // Map to registration_end_date in schema
       }),
     });
 
@@ -278,25 +279,26 @@ export default function EventsPage() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: eventData.name,
+        event_name: eventData.name, // Map to event_name in schema
         description: eventData.description,
-        date: eventData.date ? format(eventData.date, 'yyyy-MM-dd') : '',
+        event_date: eventData.date ? format(eventData.date, 'yyyy-MM-dd') : '', // Map to event_date in schema
         time: eventData.time ? format(eventData.time, 'HH:mm') : '',
         location: eventData.location,
         target_audience: eventData.target_audience,
         cover_image: eventData.cover_image,
         gallery_images: eventData.gallery_images,
-        isFreeEvent: eventData.isFreeEvent,
+        is_free_event: eventData.isFreeEvent, // Map to is_free_event in schema
         price: eventData.price,
-        earlyBirdPrice: eventData.earlyBirdPrice,
-        earlyBirdEndDate: eventData.earlyBirdEndDate ? format(eventData.earlyBirdEndDate, 'yyyy-MM-dd') : undefined,
+        early_bird_price: eventData.earlyBirdPrice, // Map to early_bird_price in schema
+        early_bird_end_date: eventData.earlyBirdEndDate ? format(eventData.earlyBirdEndDate, 'yyyy-MM-dd') : undefined, // Map to early_bird_end_date in schema
         paymentMethods: eventData.paymentMethods,
-        hasSlotLimit: eventData.hasSlotLimit,
-        slotLimit: eventData.slotLimit,
+        has_slot_limit: eventData.hasSlotLimit, // Map to has_slot_limit in schema
+        slot_limit: eventData.slotLimit,
+        organization_id: eventData.organization_id,
         event_staff: eventData.event_staff,
         sponsors: eventData.sponsors,
-        registrationStartDate: eventData.registrationStartDate ? format(eventData.registrationStartDate, 'yyyy-MM-dd') : undefined,
-        registrationEndDate: eventData.registrationEndDate ? format(eventData.registrationEndDate, 'yyyy-MM-dd') : undefined
+        registration_start_date: eventData.registrationStartDate ? format(eventData.registrationStartDate, 'yyyy-MM-dd') : undefined, // Map to registration_start_date in schema
+        registration_end_date: eventData.registrationEndDate ? format(eventData.registrationEndDate, 'yyyy-MM-dd') : undefined // Map to registration_end_date in schema
       }),
     });
 
@@ -1262,17 +1264,6 @@ export default function EventsPage() {
     );
   };
 
-  if (isPageLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading events...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -1339,6 +1330,7 @@ export default function EventsPage() {
         <TabsContent value="upcoming" className="mt-0">
           <EventsDisplay 
             events={filteredEvents as any} 
+            isLoading={isPageLoading}
             onManageCategories={openCategoryManagement as any}
             onEditEvent={openEditEvent as any}
             onDeleteEvent={openDeleteEvent as any}
@@ -1350,6 +1342,7 @@ export default function EventsPage() {
         <TabsContent value="past" className="mt-0">
           <EventsDisplay 
             events={filteredEvents as any} 
+            isLoading={isPageLoading}
             onManageCategories={openCategoryManagement as any}
             onEditEvent={openEditEvent as any}
             onDeleteEvent={openDeleteEvent as any}
@@ -1361,6 +1354,7 @@ export default function EventsPage() {
         <TabsContent value="all" className="mt-0">
           <EventsDisplay 
             events={filteredEvents as any} 
+            isLoading={isPageLoading}
             onManageCategories={openCategoryManagement as any}
             onEditEvent={openEditEvent as any}
             onDeleteEvent={openDeleteEvent as any}

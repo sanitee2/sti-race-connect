@@ -4,13 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { EventCard } from "./event-card";
+import { EventCardSkeleton } from "./event-card-skeleton";
 import { StatusBadge } from "./status-badge";
 import { Event } from "@/app/(marshal)/marshal-events/types/index";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface EventsDisplayProps {
   events: Event[];
+  isLoading?: boolean;
   onManageCategories: (event: Event) => void;
   onEditEvent: (event: Event) => void;
   onDeleteEvent: (event: Event) => void;
@@ -20,6 +23,7 @@ interface EventsDisplayProps {
 
 export function EventsDisplay({ 
   events, 
+  isLoading = false,
   onManageCategories,
   onEditEvent,
   onDeleteEvent,
@@ -27,6 +31,80 @@ export function EventsDisplay({
   onManageStaff
 }: EventsDisplayProps) {
   const [viewMode, setViewMode] = useState("cards");
+  
+  // Show skeleton cards when loading
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <div className="border rounded-md overflow-hidden flex">
+            <Button 
+              variant={viewMode === "cards" ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setViewMode("cards")}
+              className="rounded-none"
+              disabled
+            >
+              Cards
+            </Button>
+            <Button 
+              variant={viewMode === "table" ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setViewMode("table")}
+              className="rounded-none"
+              disabled
+            >
+              Table
+            </Button>
+          </div>
+        </div>
+        
+        {viewMode === "cards" ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <EventCardSkeleton key={index} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Event Name</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Categories</TableHead>
+                  <TableHead>Registration</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                    <TableCell>
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-2 w-full" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="h-8 w-8 ml-auto" />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-4">
@@ -159,7 +237,8 @@ export function EventsDisplay({
                                   </div>
                                 ))}
                               </div>
-                              <div className="flex w-full h-2">
+                              
+                              <div className="flex h-2 rounded-full overflow-hidden bg-muted">
                                 {categoryProgress.map((cat, index) => (
                                   <div 
                                     key={index}
