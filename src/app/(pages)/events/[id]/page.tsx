@@ -139,7 +139,6 @@ export default function EventDetailsPage() {
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Registration dialog state
-  const [isRegistrationDialogOpen, setIsRegistrationDialogOpen] = useState(false);
   const [selectedCategoryForRegistration, setSelectedCategoryForRegistration] = useState<EventCategory | null>(null);
   const [registrationDetails, setRegistrationDetails] = useState({
     emergencyContactName: '',

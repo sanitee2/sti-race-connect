@@ -38,7 +38,7 @@ export async function POST(
       );
     }
 
-    if (!paymentReceiptUrl) {
+    if (!registrationDetails?.proofOfPayment) {
       return NextResponse.json(
         { error: 'GCash receipt screenshot is required for registration' },
         { status: 400 }
@@ -237,7 +237,7 @@ export async function POST(
         registrationStatus: registration.registration_status,
         paymentStatus: registration.payment_status,
         registrationDate: registration.registered_at,
-        hasPaymentReceipt: !!registration.payment_receipt_url,
+        hasPaymentReceipt: !!registration.proof_of_payment,
       },
     }, { status: 201 });
 
@@ -293,7 +293,7 @@ export async function GET(
         registrationStatus: reg.registration_status,
         paymentStatus: reg.payment_status,
         registrationDate: reg.registered_at,
-        hasPaymentReceipt: !!reg.payment_receipt_url,
+        hasPaymentReceipt: !!reg.proof_of_payment,
         verifiedAt: reg.verified_at,
         rejectionReason: reg.rejection_reason,
       })),
