@@ -11,31 +11,68 @@ import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
+interface DatabaseEvent {
+  id: string;
+  event_name: string;
+  description: string;
+  date: string;
+  location: string;
+  image_url: string;
+  categories: string[];
+  type: string;
+  organizer: string;
+  price: string;
+  status: 'upcoming' | 'active' | 'completed';
+  target_audience: string;
+  participants: number;
+  event_date: string;
+  cover_image: string;
+  gallery_images: string[];
+}
+
 export default function Home() {
   const { theme } = useTheme();
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [events, setEvents] = useState<DatabaseEvent[]>([]);
+  const [featuredEvent, setFeaturedEvent] = useState<DatabaseEvent | null>(null);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
 
+  // Fetch events from database
   useEffect(() => {
-    // If user is authenticated, redirect to appropriate dashboard
-    if (status === 'authenticated' && session?.user?.role) {
-      const role = session.user.role;
-      switch (role) {
-        case 'Marshal':
-          router.push('/dashboard');
-          break;
-        case 'Admin':
-          router.push('/admin');
-          break;
-        case 'Runner':
-          router.push('/runner-dashboard');
-          break;
-        default:
-          router.push('/dashboard');
-          break;
+    const fetchEvents = async () => {
+      try {
+        setIsLoadingEvents(true);
+        // Fetch upcoming events for the showcase section
+        const eventsResponse = await fetch('/api/public/events?status=upcoming&limit=3');
+        if (eventsResponse.ok) {
+          const eventsData = await eventsResponse.json();
+          setEvents(eventsData);
+        } else {
+          console.error('Failed to fetch events');
+          setEvents([]);
+        }
+
+        // Fetch a featured event for the hero section
+        const featuredResponse = await fetch('/api/public/events?status=upcoming&limit=1');
+        if (featuredResponse.ok) {
+          const featuredData = await featuredResponse.json();
+          if (featuredData.length > 0) {
+            setFeaturedEvent(featuredData[0]);
+          }
+        } else {
+          console.error('Failed to fetch featured event');
+        }
+      } catch (error) {
+        console.error('Error fetching events:', error);
+        setEvents([]);
+      } finally {
+        setIsLoadingEvents(false);
       }
-    }
-  }, [session, status, router]);
+    };
+
+    fetchEvents();
+  }, []);
 
   // Show loading state while checking authentication
   if (status === 'loading') {
@@ -49,20 +86,44 @@ export default function Home() {
     );
   }
 
-  // If authenticated, don't render the landing page (redirect is happening)
-  if (status === 'authenticated') {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Redirecting to dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-  
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Authenticated User Banner */}
+      {status === 'authenticated' && session?.user && (
+        <div className="bg-primary/10 border-b border-primary/20">
+          <div className="container mx-auto px-6 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                  <span className="text-xs font-bold text-primary">
+                    {session.user.name?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Welcome back, {session.user.name}!
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {session.user.role} Dashboard
+                  </p>
+                </div>
+              </div>
+              <Link
+                href={
+                  session.user.role === 'Admin' ? '/admin' :
+                  session.user.role === 'Marshal' ? '/dashboard' :
+                  session.user.role === 'Runner' ? '/runner-dashboard' :
+                  '/dashboard'
+                }
+                className="text-sm bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                Go to Dashboard
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section - Modern Design */}
       <section className="pt-12 md:pt-24 pb-24 md:pb-32 overflow-hidden relative bg-gradient-to-b from-primary to-primary/80 text-primary-foreground">
         {/* Background sporty elements */}
@@ -129,8 +190,8 @@ export default function Home() {
               <div className="absolute -z-10 w-[600px] h-[600px] sporty-gradient opacity-20 rounded-full blur-3xl top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
               <div className="relative w-full max-w-2xl h-[500px] rounded-2xl overflow-hidden shadow-2xl mx-auto hover-scale transition-all duration-700">
                 <Image
-                  src="/assets/login_page.jpg" 
-                  alt="Race Connect Dashboard"
+                  src={featuredEvent?.cover_image || featuredEvent?.image_url || "/assets/login_page.jpg"} 
+                  alt={featuredEvent?.event_name || "Race Connect Dashboard"}
                   fill
                   className="object-cover"
                   priority
@@ -139,17 +200,36 @@ export default function Home() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                 
                 {/* Floating UI elements for visual interest */}
-                <div className="absolute bottom-6 left-6 right-6 bg-background/90 backdrop-blur-sm rounded-xl p-5 shadow-lg border border-border dark:bg-background/80">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-bold text-foreground">Marathon 2024</h3>
-                      <p className="text-sm text-muted-foreground">Registration opens in 3 days</p>
+                {featuredEvent ? (
+                  <Link 
+                    href={`/events/${featuredEvent.id}`}
+                    className="absolute bottom-6 left-6 right-6 bg-background/90 backdrop-blur-sm rounded-xl p-5 shadow-lg border border-border dark:bg-background/80 hover:bg-background/95 hover:shadow-xl transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">{featuredEvent.event_name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {featuredEvent.date} • {featuredEvent.location}
+                        </p>
+                      </div>
+                      <div className="bg-secondary text-secondary-foreground rounded-lg px-3 py-1.5 text-xs font-bold shadow-sm pulse-effect">
+                        Upcoming Event
+                      </div>
                     </div>
-                    <div className="bg-secondary text-secondary-foreground rounded-lg px-3 py-1.5 text-xs font-bold shadow-sm pulse-effect">
-                      Trending Event
+                  </Link>
+                ) : (
+                  <div className="absolute bottom-6 left-6 right-6 bg-background/90 backdrop-blur-sm rounded-xl p-5 shadow-lg border border-border dark:bg-background/80">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-bold text-foreground">Featured Event</h3>
+                        <p className="text-sm text-muted-foreground">Loading upcoming events...</p>
+                      </div>
+                      <div className="bg-secondary text-secondary-foreground rounded-lg px-3 py-1.5 text-xs font-bold shadow-sm pulse-effect">
+                        Loading...
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
                 
                 <div className="absolute top-6 right-6 bg-background/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border border-border dark:bg-background/80 flex items-center gap-2">
                   <div className="h-2.5 w-2.5 rounded-full bg-green-500 pulse-effect"></div>
@@ -258,49 +338,43 @@ export default function Home() {
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                id: "1",
-                event_name: "City Marathon 2024",
-                description: "Join us for the premier running event in Metro Manila.",
-                date: "June 15, 2024",
-                location: "Metro Manila",
-                image_url: "/assets/login_page.jpg",
-                categories: ["5K", "10K", "21K"],
-                status: "upcoming" as const,
-                organizer: "Metro Running Club",
-                participants: 1240
-              },
-              {
-                id: "2",
-                event_name: "Coastal Trail Run",
-                description: "Experience the beauty of nature with this challenging trail run.",
-                date: "July 22, 2024",
-                location: "Batangas",
-                image_url: "/assets/login_page.jpg",
-                categories: ["Trail 12K", "Trail 25K"],
-                status: "active" as const,
-                organizer: "Trail Blazers PH",
-                participants: 850
-              },
-              {
-                id: "3",
-                event_name: "STI College Fun Run",
-                description: "A fun community event for all STI students and alumni.",
-                date: "August 8, 2024",
-                location: "Multiple STI Campuses",
-                image_url: "/assets/login_page.jpg",
-                categories: ["3K", "5K"],
-                status: "upcoming" as const,
-                organizer: "STI Events Committee",
-                participants: 620
-              }
-            ].map((event) => (
-              <EventCard 
-                key={event.id}
-                {...event}
-              />
-            ))}
+            {isLoadingEvents ? (
+              // Show loading skeletons for 3 event cards
+              Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="group relative overflow-hidden rounded-lg aspect-[4/3] animate-pulse">
+                  <div className="absolute inset-0 bg-muted"></div>
+                  <div className="absolute inset-0 p-4 pb-12 flex flex-col">
+                    <div className="mt-auto space-y-3">
+                      <div className="h-6 bg-muted-foreground/20 rounded mb-3"></div>
+                      <div className="space-y-1.5">
+                        <div className="h-3 bg-muted-foreground/20 rounded w-2/3"></div>
+                        <div className="h-3 bg-muted-foreground/20 rounded w-1/2"></div>
+                        <div className="h-3 bg-muted-foreground/20 rounded w-3/4"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : events.length > 0 ? (
+              events.map((event) => (
+                <EventCard 
+                  key={event.id}
+                  {...event}
+                />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <div className="max-w-sm mx-auto">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Calendar className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No Events Available</h3>
+                  <p className="text-muted-foreground">
+                    No upcoming events found at the moment. Check back later for new events!
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="mt-12 text-center">
