@@ -122,6 +122,29 @@ export async function POST(req: Request) {
       },
     });
 
+    // Generate QR code when payment is approved
+    if (action === 'approve') {
+      try {
+        console.log(`Starting QR code generation for participant ${participantId}`);
+        const { updateParticipantWithQRCode } = await import('@/lib/qr-code-generator');
+        const qrResult = await updateParticipantWithQRCode(participantId, {
+          format: 'simple',
+          saveToFile: true,
+        });
+        console.log(`QR code generated successfully for participant ${participantId}:`, {
+          qrCodeData: qrResult.qrCodeData,
+          qrCodeFileURL: qrResult.qrCodeFileURL,
+        });
+      } catch (qrError) {
+        console.error('Error generating QR code for approved participant:', qrError);
+        console.error('QR Error details:', {
+          message: qrError instanceof Error ? qrError.message : 'Unknown error',
+          stack: qrError instanceof Error ? qrError.stack : undefined,
+        });
+        // Don't fail the approval process if QR generation fails
+      }
+    }
+
     const message = action === 'approve' 
       ? `Payment approved for ${participant.user.name}'s registration to ${participant.event.event_name}` 
       : `Payment rejected for ${participant.user.name}'s registration to ${participant.event.event_name}`;

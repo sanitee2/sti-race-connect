@@ -129,6 +129,9 @@ export async function GET(
       registrationStatus: participant.registration_status,
       paymentStatus: participant.payment_status,
       registrationDate: participant.registered_at,
+      hasQRCode: !!(participant.qr_code_url && participant.qr_code_data),
+      qrCodeUrl: participant.qr_code_url,
+      qrCodeData: participant.qr_code_data,
     }));
 
     // Group participants by category for easier display
