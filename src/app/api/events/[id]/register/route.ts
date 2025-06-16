@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-// POST /api/events/[id]/register - Register for an event
+// POST /api/events/[id]/register - Register for an event with GCash receipt
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -30,9 +30,17 @@ export async function POST(
     const body = await request.json();
     const { categoryId, registrationDetails } = body; // Required: specific category to register for, optional: additional details
 
+
     if (!categoryId) {
       return NextResponse.json(
         { error: 'Category ID is required for registration' },
+        { status: 400 }
+      );
+    }
+
+    if (!paymentReceiptUrl) {
+      return NextResponse.json(
+        { error: 'GCash receipt screenshot is required for registration' },
         { status: 400 }
       );
     }
@@ -101,18 +109,25 @@ export async function POST(
       );
     }
 
-    // Check if user is already registered for this event and category (redundant check, but keeping for clarity)
     const existingRegistration = await prisma.participants.findFirst({
       where: {
         user_id: session.user.id,
         event_id: eventId,
-        category_id: categoryId,
+      },
+      include: {
+        category: {
+          select: {
+            category_name: true,
+          },
+        },
       },
     });
 
     if (existingRegistration) {
       return NextResponse.json(
-        { error: 'Already registered for this event category' },
+        { 
+          error: `You are already registered for this event in the "${existingRegistration.category.category_name}" category. You can only register for one category per event.` 
+        },
         { status: 400 }
       );
     }
@@ -184,8 +199,6 @@ export async function POST(
         });
       }
     }
-
-    // Create the registration
     const registration = await prisma.participants.create({
       data: {
         user_id: session.user.id,
@@ -194,6 +207,7 @@ export async function POST(
         registration_status: 'Pending', // Set to Pending for marshal approval
         payment_status: 'Pending', // Payment can be handled separately
         proof_of_payment: registrationDetails?.proofOfPayment || null, // Store proof of payment if provided
+
       },
       include: {
         user: {
@@ -214,7 +228,7 @@ export async function POST(
     });
 
     return NextResponse.json({
-      message: 'Successfully registered for event',
+      message: 'Registration submitted successfully! Your registration and payment receipt are now pending marshal verification.',
       registration: {
         id: registration.id,
         eventId: eventId,
@@ -223,6 +237,7 @@ export async function POST(
         registrationStatus: registration.registration_status,
         paymentStatus: registration.payment_status,
         registrationDate: registration.registered_at,
+        hasPaymentReceipt: !!registration.payment_receipt_url,
       },
     }, { status: 201 });
 
@@ -278,6 +293,9 @@ export async function GET(
         registrationStatus: reg.registration_status,
         paymentStatus: reg.payment_status,
         registrationDate: reg.registered_at,
+        hasPaymentReceipt: !!reg.payment_receipt_url,
+        verifiedAt: reg.verified_at,
+        rejectionReason: reg.rejection_reason,
       })),
     });
 
