@@ -4,13 +4,62 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Logo } from '@/components/Logo';
 import { Calendar, Users, Trophy, Clock, MapPin, Star, ChevronRight, BarChart, ArrowRight, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { EventCard } from '@/components/EventCard';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const { theme } = useTheme();
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    // If user is authenticated, redirect to appropriate dashboard
+    if (status === 'authenticated' && session?.user?.role) {
+      const role = session.user.role;
+      switch (role) {
+        case 'Marshal':
+          router.push('/dashboard');
+          break;
+        case 'Admin':
+          router.push('/admin');
+          break;
+        case 'Runner':
+          router.push('/runner-dashboard');
+          break;
+        default:
+          router.push('/dashboard');
+          break;
+      }
+    }
+  }, [session, status, router]);
+
+  // Show loading state while checking authentication
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If authenticated, don't render the landing page (redirect is happening)
+  if (status === 'authenticated') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-background text-foreground">

@@ -10,7 +10,7 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -28,7 +28,7 @@ export async function POST(
 
     const { id: eventId } = await params;
     const body = await request.json();
-    const { categoryId } = body; // Required: specific category to register for
+    const { categoryId, registrationDetails } = body; // Required: specific category to register for, optional: additional details
 
     if (!categoryId) {
       return NextResponse.json(
@@ -76,7 +76,32 @@ export async function POST(
       );
     }
 
-    // Check if user is already registered for this event and category
+    // Check if user is already registered for ANY category in this event
+    const existingEventRegistration = await prisma.participants.findFirst({
+      where: {
+        user_id: session.user.id,
+        event_id: eventId,
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            category_name: true,
+          },
+        },
+      },
+    });
+
+    if (existingEventRegistration) {
+      return NextResponse.json(
+        {
+          error: `You are already registered for the "${existingEventRegistration.category.category_name}" category in this event. You can only register for one category per event.`
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check if user is already registered for this event and category (redundant check, but keeping for clarity)
     const existingRegistration = await prisma.participants.findFirst({
       where: {
         user_id: session.user.id,
@@ -92,6 +117,74 @@ export async function POST(
       );
     }
 
+    // For paid events, require proof of payment
+    if (!event.is_free_event && eventCategory.category.price && eventCategory.category.price > 0) {
+      if (!registrationDetails?.proofOfPayment) {
+        return NextResponse.json(
+          { error: 'Proof of payment is required for paid events' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate required emergency contact information
+    if (!registrationDetails?.emergencyContactName || !registrationDetails?.emergencyContactPhone) {
+      return NextResponse.json(
+        { error: 'Emergency contact information is required for registration' },
+        { status: 400 }
+      );
+    }
+
+    // Update user's runner profile with any changes made during registration
+    if (registrationDetails) {
+      const updateData: any = {};
+
+      if (registrationDetails.emergencyContactName) {
+        updateData.emergency_contact_name = registrationDetails.emergencyContactName;
+      }
+      if (registrationDetails.emergencyContactPhone) {
+        updateData.emergency_contact_phone = registrationDetails.emergencyContactPhone;
+      }
+      if (registrationDetails.emergencyContactRelationship) {
+        updateData.emergency_contact_relationship = registrationDetails.emergencyContactRelationship;
+      }
+      if (registrationDetails.tshirtSize) {
+        updateData.tshirt_size = registrationDetails.tshirtSize;
+      }
+      if (registrationDetails.dateOfBirth) {
+        updateData.date_of_birth = new Date(registrationDetails.dateOfBirth);
+      }
+      if (registrationDetails.gender) {
+        updateData.gender = registrationDetails.gender;
+      }
+
+      // Update runner profile if there are changes
+      if (Object.keys(updateData).length > 0) {
+        // Get user's current address from their profile
+        const user = await prisma.users.findUnique({
+          where: { id: session.user.id },
+          select: { address: true }
+        });
+
+        await prisma.runner_profile.upsert({
+          where: { user_id: session.user.id },
+          update: updateData,
+          create: {
+            user_id: session.user.id,
+            // Required fields with defaults if not provided
+            emergency_contact_name: registrationDetails.emergencyContactName || '',
+            emergency_contact_phone: registrationDetails.emergencyContactPhone || '',
+            emergency_contact_relationship: registrationDetails.emergencyContactRelationship || '',
+            tshirt_size: registrationDetails.tshirtSize || 'M',
+            date_of_birth: registrationDetails.dateOfBirth ? new Date(registrationDetails.dateOfBirth) : new Date(),
+            gender: registrationDetails.gender || 'Male',
+            address: user?.address || '', // Use user's address or empty string
+            ...updateData
+          }
+        });
+      }
+    }
+
     // Create the registration
     const registration = await prisma.participants.create({
       data: {
@@ -100,6 +193,7 @@ export async function POST(
         category_id: categoryId,
         registration_status: 'Pending', // Set to Pending for marshal approval
         payment_status: 'Pending', // Payment can be handled separately
+        proof_of_payment: registrationDetails?.proofOfPayment || null, // Store proof of payment if provided
       },
       include: {
         user: {
@@ -148,7 +242,7 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Authentication required' },

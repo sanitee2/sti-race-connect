@@ -126,6 +126,7 @@ model event_categories {
   created_at       DateTime            @default(now())
   updated_at       DateTime            @updatedAt
   gun_start_time   DateTime? // Optional gun start time for this category
+  cut_off_time     DateTime? // Optional cut off time for this category
   creator          users               @relation("CategoryCreatedBy", fields: [created_by], references: [id])
   events           event_to_category[]
   participants     participants[]      @relation("CategoryParticipant")
@@ -153,6 +154,7 @@ model participants {
   category_id         String             @db.ObjectId
   payment_status      PaymentStatus      @default(Pending)
   registration_status RegistrationStatus @default(Pending)
+  proof_of_payment    String? // URL to proof of payment image in Digital Ocean Spaces
   registered_at       DateTime           @default(now())
   user                users              @relation("UserParticipant", fields: [user_id], references: [id], onDelete: Cascade)
   event               events             @relation("EventParticipants", fields: [event_id], references: [id])

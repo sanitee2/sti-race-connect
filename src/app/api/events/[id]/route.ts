@@ -2,6 +2,39 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { StaffRole } from '@prisma/client';
+
+// Helper function to map frontend StaffRole enum to Prisma StaffRole enum
+function mapStaffRoleToPrisma(frontendRole: string): StaffRole {
+  switch (frontendRole) {
+    case 'MARSHAL':
+      return StaffRole.EventMarshal;
+    case 'RACE_DIRECTOR':
+      return StaffRole.Coordinator;
+    case 'VOLUNTEER':
+      return StaffRole.SubMarshal;
+    case 'MEDICAL_STAFF':
+      return StaffRole.SubMarshal;
+    case 'SECURITY':
+      return StaffRole.SubMarshal;
+    case 'OTHER':
+    default:
+      return StaffRole.SubMarshal;
+  }
+}
+
+// Helper function to map Prisma StaffRole enum to frontend StaffRole enum
+function mapStaffRoleFromPrisma(prismaRole: StaffRole): string {
+  switch (prismaRole) {
+    case StaffRole.EventMarshal:
+      return 'MARSHAL';
+    case StaffRole.Coordinator:
+      return 'RACE_DIRECTOR';
+    case StaffRole.SubMarshal:
+    default:
+      return 'OTHER';
+  }
+}
 
 // GET /api/events/[id] - Fetch single event
 export async function GET(
@@ -10,6 +43,28 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+
+    // Get the current session for authorization
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get user role to determine access permissions
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
 
     const event = await prisma.events.findUnique({
       where: { id },
@@ -52,6 +107,21 @@ export async function GET(
       );
     }
 
+    // Check if user has permission to view this event
+    // Admins can view all events
+    // Non-admins can only view events they created or are staff members of
+    if (user.role !== 'Admin') {
+      const isCreator = event.created_by === session.user.id;
+      const isStaffMember = event.event_staff.some(staff => staff.user_id === session.user.id);
+      
+      if (!isCreator && !isStaffMember) {
+        return NextResponse.json(
+          { error: 'Permission denied' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Transform the data to match frontend expectations
     const transformedEvent = {
       id: event.id,
@@ -80,24 +150,27 @@ export async function GET(
         image: eventCategory.category.category_image,
         has_slot_limit: eventCategory.category.has_slot_limit,
         slot_limit: eventCategory.category.slot_limit,
+        price: eventCategory.category.price ? Number(eventCategory.category.price) : null,
+        earlyBirdPrice: eventCategory.category.early_bird_price ? Number(eventCategory.category.early_bird_price) : null,
       })),
       cover_image: event.cover_image,
       gallery_images: event.gallery_images,
       cutOffTime: event.cut_off_time,
       gunStartTime: event.gun_start_time,
-      registrationStartDate: event.registration_start_date,
-      registrationEndDate: event.registration_end_date,
+      registrationStartDate: event.registration_start_date ? event.registration_start_date.toISOString() : null,
+      registrationEndDate: event.registration_end_date ? event.registration_end_date.toISOString() : null,
       isFreeEvent: event.is_free_event,
-      price: event.price,
-      earlyBirdPrice: event.early_bird_price,
-      earlyBirdEndDate: event.early_bird_end_date,
+      price: event.price ? Number(event.price) : null,
+      earlyBirdPrice: event.early_bird_price ? Number(event.early_bird_price) : null,
+      earlyBirdEndDate: event.early_bird_end_date ? event.early_bird_end_date.toISOString() : null,
       has_slot_limit: event.has_slot_limit,
       slot_limit: event.slot_limit,
       organization_id: event.organization_id,
       event_staff: event.event_staff.map(staff => ({
         user_id: staff.user_id,
-        role_in_event: staff.role_in_event,
+        role_in_event: mapStaffRoleFromPrisma(staff.role_in_event),
         responsibilities: staff.responsibilities,
+        assigned_at: staff.assigned_at ? staff.assigned_at.toISOString() : null,
         user: staff.user
       })),
       sponsors: event.sponsors.map(sponsor => ({
@@ -161,6 +234,11 @@ export async function PUT(
       where: { id },
       select: {
         created_by: true,
+        event_staff: {
+          select: {
+            user_id: true,
+          },
+        },
       },
     });
 
@@ -178,7 +256,13 @@ export async function PUT(
     });
 
     // Check if user has permission to edit
-    if (user?.role !== 'Admin' && existingEvent.created_by !== session.user.id) {
+    // Admins can edit all events
+    // Event creators can edit their events
+    // Staff members can edit events they are assigned to
+    const isCreator = existingEvent.created_by === session.user.id;
+    const isStaffMember = existingEvent.event_staff.some(staff => staff.user_id === session.user.id);
+    
+    if (user?.role !== 'Admin' && !isCreator && !isStaffMember) {
       return NextResponse.json(
         { error: 'Permission denied' },
         { status: 403 }
@@ -262,7 +346,7 @@ export async function PUT(
               data: {
                 event_id: id,
                 user_id: staff.user_id,
-                role_in_event: staff.role_in_event,
+                role_in_event: mapStaffRoleToPrisma(staff.role_in_event),
                 responsibilities: staff.responsibilities,
               },
             })
@@ -366,8 +450,9 @@ export async function PUT(
       organization_id: updatedEvent.organization_id,
       event_staff: updatedEvent.event_staff.map((staff: any) => ({
         user_id: staff.user_id,
-        role_in_event: staff.role_in_event,
+        role_in_event: mapStaffRoleFromPrisma(staff.role_in_event),
         responsibilities: staff.responsibilities,
+        assigned_at: staff.assigned_at ? staff.assigned_at.toISOString() : null,
         user: staff.user
       })),
       sponsors: updatedEvent.sponsors.map((sponsor: any) => ({
@@ -409,6 +494,11 @@ export async function DELETE(
       select: {
         created_by: true,
         event_name: true,
+        event_staff: {
+          select: {
+            user_id: true,
+          },
+        },
       },
     });
 
@@ -426,7 +516,13 @@ export async function DELETE(
     });
 
     // Check if user has permission to delete
-    if (user?.role !== 'Admin' && existingEvent.created_by !== session.user.id) {
+    // Admins can delete all events
+    // Event creators can delete their events
+    // Staff members can delete events they are assigned to
+    const isCreator = existingEvent.created_by === session.user.id;
+    const isStaffMember = existingEvent.event_staff.some(staff => staff.user_id === session.user.id);
+    
+    if (user?.role !== 'Admin' && !isCreator && !isStaffMember) {
       return NextResponse.json(
         { error: 'Permission denied' },
         { status: 403 }

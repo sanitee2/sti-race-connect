@@ -13,11 +13,34 @@ export default withAuth(
 
     const userRole = token.role as string;
 
+    // Handle root route redirects based on user role
+    if (pathname === '/') {
+      switch (userRole) {
+        case 'Marshal':
+          return NextResponse.redirect(new URL('/dashboard', req.url));
+        case 'Admin':
+          return NextResponse.redirect(new URL('/admin', req.url));
+        case 'Runner':
+          return NextResponse.redirect(new URL('/runner-dashboard', req.url));
+        default:
+          // For any other role or undefined role, redirect to a default page
+          return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
+    }
+
     // Define role-based route access rules
     const roleRoutes = {
       Admin: ['/admin'],
-      Marshal: ['/dashboard', '/marshal-events', '/profile', '/settings'],
-      Runner: ['/runner'],
+      Marshal: [
+        '/dashboard', 
+        '/marshal-events', 
+        '/profile', 
+        '/settings',
+        '/organizations',
+        '/participants',
+        '/qr-scanner'
+      ],
+      Runner: ['/runner', '/runner-dashboard'],
     };
 
     // Check if the current path matches any role-specific routes
@@ -44,12 +67,17 @@ export default withAuth(
 
 export const config = {
   matcher: [
+    '/',
     '/admin',
     '/admin/:path*',
     '/dashboard/:path*',
     '/marshal-events/:path*',
+    '/organizations/:path*',
+    '/participants/:path*',
+    '/qr-scanner/:path*',
     '/profile',
     '/settings',
-    '/runner/:path*'
+    '/runner/:path*',
+    '/runner-dashboard/:path*'
   ]
 }; 

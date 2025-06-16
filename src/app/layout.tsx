@@ -4,7 +4,6 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { NextAuthProvider } from '@/providers/session-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
-import { FloatingTestButton } from "@/components/floating-test-button";
 import { Toaster } from 'sonner';
 import { cn } from "@/lib/utils";
 
@@ -56,7 +55,6 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             {children}
-            <FloatingTestButton />
             <Toaster position="top-right" />
           </ThemeProvider>
         </NextAuthProvider>
